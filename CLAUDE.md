@@ -22,6 +22,16 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   `RequestAction` wenn die Zielvariable eine Aktion hat (sonst `SetValue`),
   2 = immer `SetValue` (Aktion bewusst umgehen - nötig für Variablen fremder
   Instanzen, z. B. ModBus-Device-Register beim Ersatz eines alten Slaves).
+- Optionale Timeout-Absicherung (Property `RegisterTimeouts`, unabhängig vom
+  RPC-Profil): Register X ohne Schreibzugriff seit Dauer Y (fest oder aus
+  einem Quell-Register gelesen) -> Rückfallwert. Reiner Rechenkern in
+  `libs/TimeoutGuard.php` (`MBSLVTimeoutGuard`, CLI-testbar). Zeitmessung
+  nutzt die bestehende `RegisterActivity`-Attribut-Zeitstempel je Adresse -
+  WICHTIG: der interne Rückfall-Schreibvorgang läuft über
+  `applyValueToTarget()`, NICHT über `writeRegisterValue()`, damit er nicht
+  seine eigene Aktivität verbucht und sich dadurch selbst neu bewaffnet
+  (sonst käme der Rückfall nie zur Ruhe). Geprüft im bestehenden 60-s-`Watch()`-
+  Timer, kein eigener Timer.
 
 ## Tests
 

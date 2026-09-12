@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/ModbusServer.php';
+require_once __DIR__ . '/../libs/TimeoutGuard.php';
 
 /**
  * ModbusTCPSlave (NRG-Stack: "NRGModbusTCPSlave" als Alias)
@@ -62,6 +63,10 @@ class ModbusTCPSlave extends IPSModule
         $this->RegisterPropertyBoolean('SwapWords', false);
         $this->RegisterPropertyInteger('UnmappedRead', MBSLVModbusServer::UNMAPPED_ZERO);
         $this->RegisterPropertyString('Registers', '[]');
+        // Optionale Timeout-Absicherung für schreibbare Register im generischen
+        // Modus (unabhängig vom RPC-Profil, das seine eigene Watchdog-/Ablauf-
+        // Logik hat) - siehe checkRegisterTimeouts() und form.json-Panel.
+        $this->RegisterPropertyString('RegisterTimeouts', '[]');
 
         // Meteocontrol RPC / Direktvermarktung
         $this->RegisterPropertyBoolean('RPCEnabled', false);
@@ -87,6 +92,10 @@ class ModbusTCPSlave extends IPSModule
         // w=geschrieben/empfangen) - Sichtbarkeit "was geht wirklich" in der
         // Registertabelle, unabhaengig von der einen globalen LastRequest-Variable
         $this->RegisterAttributeString('RegisterActivity', '{}');
+        // Adressen, für die aktuell (wegen Timeout) der Rückfallwert gilt -
+        // verhindert, dass derselbe Rückfallwert bei jedem Watch()-Tick erneut
+        // geschrieben wird; wird beim nächsten echten Schreibzugriff gelöscht.
+        $this->RegisterAttributeString('TimeoutApplied', '{}');
 
         $this->RegisterTimer('Expire', 0, 'MBSLV_CheckExpire($_IPS[\'TARGET\']);');
         $this->RegisterTimer('Watch', 0, 'MBSLV_Watch($_IPS[\'TARGET\']);');
@@ -203,6 +212,7 @@ class ModbusTCPSlave extends IPSModule
     public function Watch(): void
     {
         $this->UpdateHealth();
+        $this->checkRegisterTimeouts();
     }
 
     /**
@@ -261,6 +271,10 @@ class ModbusTCPSlave extends IPSModule
                 $element['loadValuesFromConfiguration'] = false;
                 $element['values'] = $this->registersForForm();
             }
+            if (($element['name'] ?? '') === 'RegisterTimeouts') {
+                $element['loadValuesFromConfiguration'] = false;
+                $element['values'] = $this->timeoutsForForm();
+            }
         }
         unset($element);
         return json_encode($form);
@@ -296,12 +310,86 @@ class ModbusTCPSlave extends IPSModule
         return $rows;
     }
 
+    /**
+     * Gespeicherte Timeout-Regeln mit angehängter Live-Status-Spalte (rein zur
+     * Anzeige, nicht Teil der gespeicherten Konfiguration) - zeigt, ob das
+     * Register aktuell frisch beschrieben ist, im Rückfall steckt oder noch
+     * nie beschrieben wurde.
+     */
+    private function timeoutsForForm(): array
+    {
+        $rules = json_decode($this->ReadPropertyString('RegisterTimeouts'), true);
+        if (!is_array($rules)) {
+            return [];
+        }
+        $registers = json_decode($this->ReadPropertyString('Registers'), true);
+        if (!is_array($registers)) {
+            $registers = [];
+        }
+        $activity = json_decode($this->ReadAttributeString('RegisterActivity'), true);
+        if (!is_array($activity)) {
+            $activity = [];
+        }
+        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        if (!is_array($applied)) {
+            $applied = [];
+        }
+        foreach ($rules as &$rule) {
+            $address = (int) ($rule['Address'] ?? 0);
+            $key = (string) $address;
+            $targetRow = self::findRegisterRow($registers, $address);
+            if ($targetRow === null) {
+                $rule['Status'] = '⛔ Adresse nicht in der Registertabelle';
+            } elseif (self::normalizeWriteMode($targetRow['Writable'] ?? 0) === self::WRITE_NONE) {
+                $rule['Status'] = '⛔ Register ist auf "nur lesen" gestellt';
+            } else {
+                $lastWrite = (int) ($activity[$key]['w'] ?? 0);
+                if ($lastWrite <= 0) {
+                    $rule['Status'] = '– noch nie beschrieben';
+                } elseif (isset($applied[$key])) {
+                    $rule['Status'] = '⚠️ im Rückfall (zuletzt beschrieben ' . date('H:i:s', $lastWrite) . ')';
+                } else {
+                    $rule['Status'] = '✅ aktuell (zuletzt beschrieben ' . date('H:i:s', $lastWrite) . ')';
+                }
+            }
+        }
+        unset($rule);
+        return $rules;
+    }
+
     private static function normalizeWriteMode($value): int
     {
         if (is_bool($value)) {
             return $value ? self::WRITE_ACTION : self::WRITE_NONE;
         }
         return max(self::WRITE_NONE, min(self::WRITE_DIRECT, (int) $value));
+    }
+
+    /** Rohe (gespeicherte) Registerzeile in die von buildServer()/den Readern/Writern erwartete Form bringen */
+    private static function normalizeGenericRow(array $row): array
+    {
+        $factor = (float) ($row['Factor'] ?? 1.0);
+        return [
+            'Area'       => (int) ($row['Area'] ?? MBSLVModbusServer::AREA_HOLDING),
+            'Address'    => (int) ($row['Address'] ?? 0),
+            'DataType'   => (string) ($row['DataType'] ?? 'uint16'),
+            'VariableID' => (int) ($row['VariableID'] ?? 0),
+            'Factor'     => $factor == 0.0 ? 1.0 : $factor,
+            'Fixed'      => (float) ($row['Fixed'] ?? 0.0),
+            'Writable'   => self::normalizeWriteMode($row['Writable'] ?? 0)
+        ];
+    }
+
+    /** Sucht in der rohen (gespeicherten) Registertabelle die HOLDING-Zeile mit der gegebenen Adresse */
+    private static function findRegisterRow(array $rows, int $address): ?array
+    {
+        foreach ($rows as $row) {
+            $area = (int) ($row['Area'] ?? MBSLVModbusServer::AREA_HOLDING);
+            if ($area === MBSLVModbusServer::AREA_HOLDING && (int) ($row['Address'] ?? -1) === $address) {
+                return $row;
+            }
+        }
+        return null;
     }
 
     /**
@@ -322,10 +410,22 @@ class ModbusTCPSlave extends IPSModule
         }
         $lastRequestID = (int) @$this->GetIDForIdent('LastRequest');
         $last = $lastRequestID > 0 ? (int) GetValue($lastRequestID) : 0;
-        if ($last === 0) {
-            return sprintf('⚠️ Erreichbar auf Port %d (noch keine Anfrage empfangen).', $port);
+        $base = $last === 0
+            ? sprintf('⚠️ Erreichbar auf Port %d (noch keine Anfrage empfangen).', $port)
+            : sprintf('✅ Erreichbar auf Port %d (zuletzt %s Uhr).', $port, date('H:i:s', $last));
+
+        $fallbackCount = $this->activeTimeoutFallbackCount();
+        if ($fallbackCount > 0) {
+            $base .= sprintf(' ⚠️ %d Register auf Timeout-Rückfallwert.', $fallbackCount);
         }
-        return sprintf('✅ Erreichbar auf Port %d (zuletzt %s Uhr).', $port, date('H:i:s', $last));
+        return $base;
+    }
+
+    /** Anzahl der Register, für die aktuell (Timeout-Absicherung) der Rückfallwert gilt */
+    private function activeTimeoutFallbackCount(): int
+    {
+        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        return is_array($applied) ? count($applied) : 0;
     }
 
     private const RPC_FORM_FIELDS = ['RPCHintInternal', 'RPCSettingsRow', 'RPCForwardScript', 'RPCHintScript'];
@@ -559,6 +659,103 @@ class ModbusTCPSlave extends IPSModule
         }
         $this->WriteAttributeString('RegisterActivity', json_encode($activity));
         $this->pendingActivity = [];
+    }
+
+    /**
+     * Optionale Timeout-Absicherung für schreibbare Register im generischen
+     * Modus: Wurde ein konfiguriertes Register seit der (festen oder aus einem
+     * Quell-Register gelesenen) Dauer nicht mehr beschrieben, wird der
+     * konfigurierte Rückfallwert gesetzt. Läuft unabhängig vom RPC-Profil
+     * (das hat mit armExpiry()/CheckExpire() seine eigene, andersartige
+     * Ablauf-Logik inkl. separater "wirksamer Sollwert"-Variable) - bewusst
+     * NICHT vereinheitlicht, weil die generische Registerzeile keine solche
+     * getrennte Ist/Soll-Variable kennt, sondern direkt in die Zielvariable
+     * zurückfällt. Wird minütlich über Watch() aufgerufen.
+     */
+    private function checkRegisterTimeouts(): void
+    {
+        $rules = json_decode($this->ReadPropertyString('RegisterTimeouts'), true);
+        if (!is_array($rules) || $rules === []) {
+            return;
+        }
+        $registers = json_decode($this->ReadPropertyString('Registers'), true);
+        if (!is_array($registers)) {
+            $registers = [];
+        }
+        $activity = json_decode($this->ReadAttributeString('RegisterActivity'), true);
+        if (!is_array($activity)) {
+            $activity = [];
+        }
+        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        if (!is_array($applied)) {
+            $applied = [];
+        }
+        $now = time();
+        $changed = false;
+
+        foreach ($rules as $rule) {
+            $address = (int) ($rule['Address'] ?? 0);
+            if ($address <= 0) {
+                continue;
+            }
+            $key = (string) $address;
+            $lastWrite = (int) ($activity[$key]['w'] ?? 0);
+            if ($lastWrite <= 0) {
+                continue; // noch nie beschrieben - Timer beginnt erst mit dem ersten echten Schreibzugriff
+            }
+
+            $sourceAddress = (int) ($rule['SourceAddress'] ?? 0);
+            $sourceValue = null;
+            if ($sourceAddress > 0) {
+                $sourceRow = self::findRegisterRow($registers, $sourceAddress);
+                if ($sourceRow !== null) {
+                    // reine Anzeige-/Auswertungslesart - zaehlt nicht als "von einem Master abgefragt"
+                    $sourceValue = $this->currentRegisterValue(self::normalizeGenericRow($sourceRow));
+                }
+            }
+            $seconds = MBSLVTimeoutGuard::effectiveSeconds(
+                (float) ($rule['Duration'] ?? 0),
+                $sourceValue,
+                (string) ($rule['Unit'] ?? MBSLVTimeoutGuard::UNIT_SECONDS)
+            );
+
+            if (!MBSLVTimeoutGuard::isExpired($now, $lastWrite, $seconds)) {
+                if (isset($applied[$key])) {
+                    unset($applied[$key]);
+                    $changed = true;
+                }
+                continue;
+            }
+            if (isset($applied[$key])) {
+                continue; // Rückfallwert steht schon, nicht bei jedem Tick erneut schreiben
+            }
+
+            $targetRow = self::findRegisterRow($registers, $address);
+            if ($targetRow === null) {
+                $this->SendDebug('Timeout', sprintf('Register %d: keine passende Zeile in der Registertabelle', $address), 0);
+                continue;
+            }
+            $fallback = (float) ($rule['Fallback'] ?? 0);
+            $this->SendDebug('Timeout', sprintf('Register %d: %.0f s ohne Schreibzugriff - setze Rückfallwert %.3f', $address, $seconds, $fallback), 0);
+            $this->applyValueToTarget(self::normalizeGenericRow($targetRow), $fallback);
+            $applied[$key] = true;
+            $changed = true;
+        }
+
+        if ($changed) {
+            $this->WriteAttributeString('TimeoutApplied', json_encode($applied));
+        }
+    }
+
+    /** Läuft aktuell ein Timeout-Rückfall für diese Adresse, wird er hier beendet */
+    private function clearTimeoutFallback(int $address): void
+    {
+        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        if (!is_array($applied) || !isset($applied[(string) $address])) {
+            return;
+        }
+        unset($applied[(string) $address]);
+        $this->WriteAttributeString('TimeoutApplied', json_encode($applied));
     }
 
     /** Formatierte Zugriffszeiten (HH:MM:SS bzw. "–") einer Registeradresse fuer die Formularanzeige */
@@ -820,19 +1017,7 @@ class ModbusTCPSlave extends IPSModule
         if (!is_array($rows)) {
             $rows = [];
         }
-        $normalized = [];
-        foreach ($rows as $row) {
-            $factor = (float) ($row['Factor'] ?? 1.0);
-            $normalized[] = [
-                'Area'       => (int) ($row['Area'] ?? MBSLVModbusServer::AREA_HOLDING),
-                'Address'    => (int) ($row['Address'] ?? 0),
-                'DataType'   => (string) ($row['DataType'] ?? 'uint16'),
-                'VariableID' => (int) ($row['VariableID'] ?? 0),
-                'Factor'     => $factor == 0.0 ? 1.0 : $factor,
-                'Fixed'      => (float) ($row['Fixed'] ?? 0.0),
-                'Writable'   => self::normalizeWriteMode($row['Writable'] ?? 0)
-            ];
-        }
+        $normalized = array_map([self::class, 'normalizeGenericRow'], $rows);
 
         if ($this->ReadPropertyBoolean('RPCEnabled')) {
             foreach ([
@@ -914,7 +1099,22 @@ class ModbusTCPSlave extends IPSModule
             $this->rpcWrite($row['Ident'], $value);
             return;
         }
+        // ein echter Master-Schreibzugriff beendet einen laufenden Timeout-Rückfall
+        $this->clearTimeoutFallback((int) ($row['Address'] ?? 0));
+        $this->applyValueToTarget($row, $value);
+    }
 
+    /**
+     * Schreibt einen Wert in die Zielvariable einer generischen Registerzeile
+     * (Ident-Zeilen der RPC-Vorlage laufen NICHT hier durch, siehe rpcWrite()).
+     * Bewusst getrennt von writeRegisterValue(): wird auch vom internen
+     * Timeout-Rückfall (checkRegisterTimeouts()) genutzt, OHNE das als
+     * "von einem Master geschrieben" in RegisterActivity zu vermerken - sonst
+     * würde der Rückfall selbst seinen eigenen Timeout immer wieder neu
+     * bewaffnen und nie zur Ruhe kommen.
+     */
+    private function applyValueToTarget(array $row, float $value): void
+    {
         $variable = $row['VariableID'];
         if ($variable < 10000 || !IPS_VariableExists($variable)) {
             $this->SendDebug('Schreiben', sprintf('Register %d: keine Zielvariable zugeordnet', $row['Address']), 0);

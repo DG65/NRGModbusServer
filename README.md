@@ -1,7 +1,7 @@
 # NRG-Stack ModbusSlave
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.7.4-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml)
@@ -125,6 +125,38 @@ unzugeordnete Register anlegen"** erzeugt bei Bedarf für alle Zeilen ohne Varia
 Datenpunkt unter der Instanz und trägt ihn in die Tabelle ein (Zeilen mit Festwert bleiben
 unangetastet). Diese Datenpunkte können dann per Ereignis/Skript aus beliebigen Quellen
 befüllt werden – praktisch für Emulationen wie die SunSpec-Vorlage.
+
+### Timeout-Absicherung (optionale Sicherung für schreibbare Register)
+
+Ohne die RPC-Vorlage kennt die Registertabelle von sich aus **kein Ablaufdatum** für einen
+geschriebenen Wert – ein einmal gesetzter Sollwert bleibt bei Verbindungsverlust des Masters
+unbegrenzt stehen. Das kann ein echtes Sicherheitsproblem sein, z. B. wenn ein Direktvermarkter
+eine Abregelung setzt und dann die Verbindung verliert: ohne Absicherung bliebe die Anlage
+dauerhaft abgeregelt statt nach der vereinbarten Gültigkeitsdauer automatisch wieder freizugeben.
+
+Im Panel **„⏱ Timeout-Absicherung"** lässt sich das pro Register nachrüsten (unabhängig davon,
+ob die RPC-Vorlage überhaupt verwendet wird):
+
+| Spalte | Bedeutung |
+|---|---|
+| Ziel-Adresse | Register aus der Haupttabelle, das überwacht werden soll (muss dort schreibbar sein) |
+| Dauer + Einheit | feste Gültigkeitsdauer (Sekunden oder Minuten) |
+| Quell-Register | optional: Adresse eines anderen Registers, dessen **aktueller Wert** die Dauer liefert, statt der festen „Dauer" – für Master, die ihre Gültigkeitsdauer selbst mitschreiben |
+| Rückfallwert | wird gesetzt, sobald die Ziel-Adresse länger als die Dauer nicht mehr beschrieben wurde |
+| Status | Live-Anzeige: noch nie beschrieben / aktuell / im Rückfall / Konfigurationsfehler |
+
+**Beispiel Meteocontrol blue'Log:** Next Kraftwerke (oder ein anderer Direktvermarkter) schreibt
+den Sollwert in Register 5000 und die Gültigkeitsdauer in Register 5006 (in Minuten). Eine
+Zeitüberwachungs-Zeile mit Ziel-Adresse 5000, Quell-Register 5006, Einheit Minuten und
+Rückfallwert 100 (= keine Abregelung) reproduziert damit das blue'Log-eigene Sicherheitsverhalten
+– auch ganz ohne die RPC-Vorlage, also z. B. wenn Register 5000 nach der Migration eines
+bestehenden Slaves auf eine bereits vorhandene, wiederverwendete Variable zeigt (Schreibmodus
+„Ja - direkt", siehe oben).
+
+Die Zeit läuft erst ab dem **ersten echten Schreibzugriff** – eine nie beschriebene Zeile fällt
+nie automatisch zurück, ein Neustart der Instanz löst also keinen ungewollten Rückfall aus.
+Geprüft wird einmal pro Minute (derselbe Takt wie die Statusampel); ein aktiver Rückfall
+erscheint zusätzlich als Zähler in der Verbindungs-Kopfzeile oben im Formular.
 
 #### Meteocontrol blue'Log RPC (Direktvermarktung)
 

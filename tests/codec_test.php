@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/../libs/ModbusServer.php';
+require_once __DIR__ . '/../libs/TimeoutGuard.php';
 
 $failures = 0;
 
@@ -164,6 +165,18 @@ check('Zwei Frames in einem Paket', count($frames) === 2 && $rest === '');
 
 [$frames, $rest] = MBSLVModbusServer::extractFrames("GET / HTTP/1.1\r\n");
 check('Datenmüll verworfen', $frames === [] && $rest === '');
+
+// --- MBSLVTimeoutGuard: Timeout-Absicherung generischer Register ---------------
+
+check('Timeout: fest, Sekunden, noch nicht abgelaufen', MBSLVTimeoutGuard::isExpired(1000, 950, MBSLVTimeoutGuard::effectiveSeconds(300, null, 's')) === false);
+check('Timeout: fest, Sekunden, genau abgelaufen (>=)', MBSLVTimeoutGuard::isExpired(1300, 1000, MBSLVTimeoutGuard::effectiveSeconds(300, null, 's')) === true);
+check('Timeout: fest, Minuten-Einheit wird umgerechnet', MBSLVTimeoutGuard::effectiveSeconds(5, null, 'min') === 300.0);
+check('Timeout: Quell-Register überschreibt feste Dauer', MBSLVTimeoutGuard::effectiveSeconds(300, 5.0, 'min') === 300.0);
+check('Timeout: Quell-Register in Sekunden', MBSLVTimeoutGuard::effectiveSeconds(9999, 42.0, 's') === 42.0);
+check('Timeout: nie geschrieben (lastWrite<=0) -> nie abgelaufen', MBSLVTimeoutGuard::isExpired(999999, 0, 1.0) === false);
+check('Timeout: Dauer 0 deaktiviert die Regel', MBSLVTimeoutGuard::isExpired(999999, 1, 0.0) === false);
+check('Timeout: Solarpark-Beispiel (5006=5 min, 10s-Zyklus, nach 4 min noch gültig)', MBSLVTimeoutGuard::isExpired(1000 + 240, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === false);
+check('Timeout: Solarpark-Beispiel (nach 6 min abgelaufen)', MBSLVTimeoutGuard::isExpired(1000 + 360, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === true);
 
 echo $failures === 0 ? "\nAlle Tests bestanden.\n" : "\n$failures Test(s) fehlgeschlagen!\n";
 exit($failures === 0 ? 0 : 1);

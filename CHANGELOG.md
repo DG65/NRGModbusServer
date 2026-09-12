@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.7.4 (2026-09-04)
+## 1.8.0 (2026-09-12)
+
+- Neu: optionale Timeout-Absicherung für schreibbare Register im generischen Modus (Panel "⏱ Timeout-Absicherung") - unabhängig vom RPC-Profil. Für einzelne Adressen konfigurierbar: feste Dauer ODER Dauer aus einem Quell-Register (z. B. Meteocontrol blue'Log Register 5006, vom Master selbst mitgeschrieben), Einheit Sekunden/Minuten, Rückfallwert. Zeit läuft erst ab dem ersten echten Schreibzugriff, geprüft im bestehenden 60-s-Takt, Live-Statusspalte je Regel, Rückfallzähler in der Verbindungs-Kopfzeile. Reiner Rechenkern in libs/TimeoutGuard.php, CLI-testbar wie der Protokollkern
 
 - Neu: Registertabelle zeigt eine Spalte "Wert" mit dem aktuellen Registerinhalt (skaliert, wie über Modbus übertragen) - reine Anzeige, aktualisiert sich wie "Empfangen"/"Abgefragt" beim Öffnen des Formulars, löst dafür keine eigene Zugriffszeit aus
 - Verbesserung: Lehnt das Modul einen Schreibversuch ab (z. B. nicht beschreibbares Register), steht der abgelehnte Wert jetzt mit im Debug-Log statt nur "Wert verworfen"
