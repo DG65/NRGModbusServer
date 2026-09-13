@@ -3,8 +3,8 @@
   "name": "NRG-Stack ModbusSlave",
   "author": "DG65",
   "url": "https://github.com/DG65/NRGModbusSlave",
-  "version": "1.8.1",
-  "build": 26,
+  "version": "1.8.2",
+  "build": 27,
   "date": 0,
   "compatibility": {
     "version": "7.0"

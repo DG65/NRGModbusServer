@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.2 (2026-09-13)
+
+- Fix (Verbund-Erkenntnis SUITE.md 9d nach Live-Vorfall Solarpark): ein bewusst geschlossener Server Socket (Open=aus, z. B. eine vorbereitete, noch nicht in Betrieb genommene Instanz) zeigt jetzt "Inaktiv" (IS_INACTIVE) statt des eigenen Fehlerstatus 201 - vermeidet, dass ein system-weiter Integrity-Check das als Störung zählt und daran hängende Watchdog-Skripte unnötig auslöst. Status 201 bleibt reserviert für den echten Fehlerfall (Socket soll laufen, tut es aber nicht, z. B. Port belegt). Verbindungszeile und Doku entsprechend angepasst
+
 ## 1.8.1 (2026-09-13)
 
 - Verbund-Regel 9b (echte Umlaute statt ue/ae/oe/ss): zwei Code-Kommentare korrigiert (nicht nutzersichtbar, reine Konsistenz). Datumsformat-Teil der Regel (TT.MM.JJJJ) geprüft und gegenstandslos - das Modul zeigt nirgends ein Datum, nur reine Uhrzeiten

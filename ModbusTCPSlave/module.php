@@ -35,7 +35,7 @@ class ModbusTCPSlave extends IPSModule
     private const TX_DATA_ID = '{C8792760-65CF-4C53-B5C7-A30FCC84FEFE}';
 
     // Instanzstatus (sichtbar ohne Log-Zugriff, siehe form.json "status")
-    private const STATUS_NO_SOCKET = 201;  // Server Socket nicht aktiv
+    private const STATUS_NO_SOCKET = 201;  // Server Socket fehlt oder soll laufen (Open=true), tut es aber nicht - NICHT für absichtlich geschlossen (dafür IS_INACTIVE, siehe UpdateHealth())
     private const STATUS_NO_TRAFFIC = 202; // Kommunikationsüberwachung ausgelöst
 
     // Schreibmodus je Registerzeile (Spalte "Writable"; ältere Konfigurationen
@@ -405,7 +405,10 @@ class ModbusTCPSlave extends IPSModule
             return 'ℹ️ Kein Server Socket verbunden.';
         }
         $port = (int) IPS_GetProperty($parent, 'Port');
-        if (!IPS_GetProperty($parent, 'Open') || IPS_GetInstance($parent)['InstanceStatus'] !== IS_ACTIVE) {
+        if (!IPS_GetProperty($parent, 'Open')) {
+            return sprintf('ℹ️ Server Socket ist geschlossen (Port %d) - noch nicht aktiv.', $port);
+        }
+        if (IPS_GetInstance($parent)['InstanceStatus'] !== IS_ACTIVE) {
             return sprintf('❌ Server Socket nicht aktiv (Port %d).', $port);
         }
         $lastRequestID = (int) @$this->GetIDForIdent('LastRequest');
@@ -794,7 +797,23 @@ class ModbusTCPSlave extends IPSModule
     private function UpdateHealth(): void
     {
         $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
-        if ($parent === 0 || IPS_GetInstance($parent)['InstanceStatus'] !== IS_ACTIVE) {
+        if ($parent === 0) {
+            $this->setStatusIfChanged(self::STATUS_NO_SOCKET);
+            return;
+        }
+        if (!IPS_GetProperty($parent, 'Open')) {
+            // Socket ist ABSICHTLICH geschlossen (z. B. vorbereitete Instanz vor
+            // dem eigentlichen Cutover) - das ist kein Fehler, sondern ein
+            // normaler Zwischenzustand. IS_INACTIVE statt eines eigenen Fehler-
+            // codes (>200), damit ein system-weiter Integrity-Check das nicht als
+            // Störung zählt und daran hängende Watchdog-Skripte nicht unnötig
+            // auslöst (Live-Vorfall Solarpark 13.09.2026, SUITE.md-Punkt 9d).
+            $this->setStatusIfChanged(IS_INACTIVE);
+            return;
+        }
+        if (IPS_GetInstance($parent)['InstanceStatus'] !== IS_ACTIVE) {
+            // Socket SOLLTE laufen (Open=true), erreicht aber keinen aktiven
+            // Zustand - das ist ein echtes Problem (z. B. Port belegt).
             $this->setStatusIfChanged(self::STATUS_NO_SOCKET);
             return;
         }

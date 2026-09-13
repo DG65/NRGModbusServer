@@ -1,7 +1,7 @@
 # NRG-Stack ModbusSlave
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.1-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.2-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml)
@@ -97,9 +97,12 @@ wahlweise 0 (tolerant, Standard – sinnvoll, wenn Master ganze Blöcke lesen) o
 Modbus-Exception „Illegal Data Address" (strikt).
 
 **Statusampel:** Die Variable „Letzte Modbus-Anfrage" zeigt das letzte Lebenszeichen des
-Masters. Der Instanzstatus meldet sichtbar (ohne Log-Zugriff), wenn der Server Socket nicht
-aktiv ist oder – bei aktivierter Kommunikationsüberwachung (Minuten, 0 = aus) – wenn kein
-Master mehr pollt. Für die Direktvermarktung empfohlen (z. B. 5 min).
+Masters. Ist der Server Socket bewusst geschlossen (z. B. eine vorbereitete, noch nicht in
+Betrieb genommene Instanz), zeigt die Instanz „Inaktiv" – kein Fehler. Soll der Socket
+eigentlich laufen, erreicht aber keinen aktiven Zustand (z. B. Port belegt), oder – bei
+aktivierter Kommunikationsüberwachung (Minuten, 0 = aus) – wenn kein Master mehr pollt, meldet
+die Instanz sichtbar (ohne Log-Zugriff) einen echten Fehlerstatus. Für die Direktvermarktung
+empfohlen (z. B. 5 min).
 
 ### Vorlagen
 

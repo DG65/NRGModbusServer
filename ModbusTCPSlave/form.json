@@ -36,7 +36,7 @@
         },
         {
           "type": "Label",
-          "caption": "Statusampel und Kommunikationsüberwachung: Die Variable 'Letzte Modbus-Anfrage' zeigt jederzeit, wann zuletzt ein Master gepollt hat. Ist der Server Socket nicht aktiv, wechselt die Instanz auf einen Fehlerstatus. Mit der Kommunikationsüberwachung (Minuten, 0 = aus) meldet die Instanz zusätzlich einen Fehler, wenn so lange keine Modbus-Anfrage mehr eintraf - für die Direktvermarktung empfohlen (z. B. 5 min), denn 'Master pollt nicht mehr' ist dort der wichtigste Alarmzustand."
+          "caption": "Statusampel und Kommunikationsüberwachung: Die Variable 'Letzte Modbus-Anfrage' zeigt jederzeit, wann zuletzt ein Master gepollt hat. Ist der Server Socket bewusst geschlossen ('Aktiv' dort ausgeschaltet, z. B. bei einer vorbereiteten, noch nicht in Betrieb genommenen Instanz), zeigt die Instanz 'Inaktiv' - das ist kein Fehler. Soll der Socket eigentlich laufen, erreicht aber keinen aktiven Zustand (z. B. Port belegt), wechselt die Instanz dagegen auf einen echten Fehlerstatus. Mit der Kommunikationsüberwachung (Minuten, 0 = aus) meldet die Instanz zusätzlich einen Fehler, wenn so lange keine Modbus-Anfrage mehr eintraf - für die Direktvermarktung empfohlen (z. B. 5 min), denn 'Master pollt nicht mehr' ist dort der wichtigste Alarmzustand."
         },
         {
           "type": "Label",

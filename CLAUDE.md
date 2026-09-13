@@ -32,6 +32,14 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   seine eigene Aktivität verbucht und sich dadurch selbst neu bewaffnet
   (sonst käme der Rückfall nie zur Ruhe). Geprüft im bestehenden 60-s-`Watch()`-
   Timer, kein eigener Timer.
+- Instanzstatus (`UpdateHealth()`): bewusst geschlossener Server Socket
+  (`Open`=false, z. B. vorbereitete Instanz vor dem Cutover) -> `IS_INACTIVE`
+  (104), NICHT der eigene Fehlercode `STATUS_NO_SOCKET` (201). Grund: ein
+  system-weiter Integrity-Check zählt jeden Status ≠ 102 als Fehler, egal ob
+  beabsichtigt - ein daran hängendes Watchdog-Skript hat deshalb am
+  13.09.2026 live die produktiven Next-Kraftwerke-Sockets am Solarpark
+  fälschlich durchgestartet (SUITE.md 9d). 201 bleibt reserviert für den
+  echten Fehlerfall (`Open`=true, aber Socket erreicht keinen aktiven Status).
 
 ## Tests
 
