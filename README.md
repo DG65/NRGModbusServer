@@ -1,7 +1,7 @@
 # NRG-Stack ModbusSlave
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.0-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.1-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml)

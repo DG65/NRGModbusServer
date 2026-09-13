@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.1 (2026-09-13)
+
+- Verbund-Regel 9b (echte Umlaute statt ue/ae/oe/ss): zwei Code-Kommentare korrigiert (nicht nutzersichtbar, reine Konsistenz). Datumsformat-Teil der Regel (TT.MM.JJJJ) geprüft und gegenstandslos - das Modul zeigt nirgends ein Datum, nur reine Uhrzeiten
+
 ## 1.8.0 (2026-09-12)
 
 - Neu: optionale Timeout-Absicherung für schreibbare Register im generischen Modus (Panel "⏱ Timeout-Absicherung") - unabhängig vom RPC-Profil. Für einzelne Adressen konfigurierbar: feste Dauer ODER Dauer aus einem Quell-Register (z. B. Meteocontrol blue'Log Register 5006, vom Master selbst mitgeschrieben), Einheit Sekunden/Minuten, Rückfallwert. Zeit läuft erst ab dem ersten echten Schreibzugriff, geprüft im bestehenden 60-s-Takt, Live-Statusspalte je Regel, Rückfallzähler in der Verbindungs-Kopfzeile. Reiner Rechenkern in libs/TimeoutGuard.php, CLI-testbar wie der Protokollkern

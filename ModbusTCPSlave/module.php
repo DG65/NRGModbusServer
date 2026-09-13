@@ -631,7 +631,7 @@ class ModbusTCPSlave extends IPSModule
     // interner Teil
     // ---------------------------------------------------------------------
 
-    /** Registerzugriff fuer die spaetere Sammel-Persistierung vormerken */
+    /** Registerzugriff für die spätere Sammel-Persistierung vormerken */
     private function noteRegisterActivity(int $address, string $kind): void
     {
         $this->pendingActivity[$address][$kind] = time();
@@ -758,7 +758,7 @@ class ModbusTCPSlave extends IPSModule
         $this->WriteAttributeString('TimeoutApplied', json_encode($applied));
     }
 
-    /** Formatierte Zugriffszeiten (HH:MM:SS bzw. "–") einer Registeradresse fuer die Formularanzeige */
+    /** Formatierte Zugriffszeiten (HH:MM:SS bzw. "–") einer Registeradresse für die Formularanzeige */
     private function registerActivityLabels(array $activity, int $address): array
     {
         $entry = $activity[(string) $address] ?? [];
