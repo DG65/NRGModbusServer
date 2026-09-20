@@ -1,8 +1,12 @@
 # Changelog
 
+## 1.10.1 (2026-09-21)
+
+- Store-Vorbereitung (Verbund-Checkliste, Neuinstallations-Simulation): Der Button "Instanzen anlegen" (Weitere Schnittstellen) fragt jetzt vor dem Anlegen ausdrücklich nach und nennt, dass Instanzen samt Server Socket angelegt und die Ports sofort geöffnet werden; die eigene Instanz bleibt dabei unverändert (nur deren gespeicherte Konfiguration wird kopiert, geschrieben wird ausschließlich auf die neuen Instanzen). Bezüge auf eine konkrete Anlage aus Code-Kommentaren, Changelog, Entwicklerhinweisen und Testnamen entfernt (neutral als "produktive Anlage" bzw. "Referenzanlage" formuliert). Keine Änderung am Verhalten der Register- oder Protokolllogik
+
 ## 1.10.0 (2026-09-21)
 
-- Neu: Speicherzellen - eine beschreibbare Registerzeile OHNE zugeordnete Variable merkt sich den vom Master geschriebenen Wert (dauerhaft, auch nach Neustart) und liefert ihn beim Lesen zurück, wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert bis zum ersten Schreibzugriff, gemerkt wird der Registerwert wie übertragen (bereits mit Faktor). Behebt den Fall, dass ein Direktvermarkter Sollwerte schreibt, die ein ModBus-Device zurückliest: dessen Variablen sind schreibgeschützt, `SetValue` von außen scheiterte dort mit "Variable is marked as read-only" (Live-Befund Solarpark 20.09.2026, der Schreibmodus "Ja - direkt" war für Variablen von ModBus-Devices nie bestätigt). Timeout-Absicherung funktioniert mit Speicherzellen (Rückfallwert wird in die Zelle geschrieben, Quell-Register darf eine Speicherzelle sein). Verhaltensänderung: beschreibbare Zeilen ohne Variable verwarfen den Wert bisher stillschweigend, sie merken ihn jetzt. Reiner Rechenkern in libs/RegisterMemory.php, CLI-getestet (18 neue Tests, u. a. Schreiben per FC16 und Zurücklesen per FC03)
+- Neu: Speicherzellen - eine beschreibbare Registerzeile OHNE zugeordnete Variable merkt sich den vom Master geschriebenen Wert (dauerhaft, auch nach Neustart) und liefert ihn beim Lesen zurück, wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert bis zum ersten Schreibzugriff, gemerkt wird der Registerwert wie übertragen (bereits mit Faktor). Behebt den Fall, dass ein Direktvermarkter Sollwerte schreibt, die ein ModBus-Device zurückliest: dessen Variablen sind schreibgeschützt, `SetValue` von außen scheiterte dort mit "Variable is marked as read-only" (Live-Befund an einer produktiven Anlage 20.09.2026, der Schreibmodus "Ja - direkt" war für Variablen von ModBus-Devices nie bestätigt). Timeout-Absicherung funktioniert mit Speicherzellen (Rückfallwert wird in die Zelle geschrieben, Quell-Register darf eine Speicherzelle sein). Verhaltensänderung: beschreibbare Zeilen ohne Variable verwarfen den Wert bisher stillschweigend, sie merken ihn jetzt. Reiner Rechenkern in libs/RegisterMemory.php, CLI-getestet (18 neue Tests, u. a. Schreiben per FC16 und Zurücklesen per FC03)
 - Doku: Formular-Panel, README und Anleitung "Bestehenden Modbus-Server ersetzen" beschreiben die Speicherzelle und ihren Unterschied zu "Ja - direkt"; Spalte "Festwert" heißt jetzt "Festwert / Startwert"
 
 ## 1.9.0 (2026-09-20)
@@ -16,7 +20,7 @@
 
 ## 1.8.2 (2026-09-13)
 
-- Fix (Verbund-Erkenntnis SUITE.md 9d nach Live-Vorfall Solarpark): ein bewusst geschlossener Server Socket (Open=aus, z. B. eine vorbereitete, noch nicht in Betrieb genommene Instanz) zeigt jetzt "Inaktiv" (IS_INACTIVE) statt des eigenen Fehlerstatus 201 - vermeidet, dass ein system-weiter Integrity-Check das als Störung zählt und daran hängende Watchdog-Skripte unnötig auslöst. Status 201 bleibt reserviert für den echten Fehlerfall (Socket soll laufen, tut es aber nicht, z. B. Port belegt). Verbindungszeile und Doku entsprechend angepasst
+- Fix (Verbund-Erkenntnis SUITE.md 9d nach Live-Vorfall an einer produktiven Anlage): ein bewusst geschlossener Server Socket (Open=aus, z. B. eine vorbereitete, noch nicht in Betrieb genommene Instanz) zeigt jetzt "Inaktiv" (IS_INACTIVE) statt des eigenen Fehlerstatus 201 - vermeidet, dass ein system-weiter Integrity-Check das als Störung zählt und daran hängende Watchdog-Skripte unnötig auslöst. Status 201 bleibt reserviert für den echten Fehlerfall (Socket soll laufen, tut es aber nicht, z. B. Port belegt). Verbindungszeile und Doku entsprechend angepasst
 
 ## 1.8.1 (2026-09-13)
 
@@ -115,7 +119,7 @@
 
 ## 1.1.0 (2026-07-12)
 
-- Neu: Formular-Aktion "Weitere Schnittstellen anlegen" - erzeugt pro angegebenem Port (z. B. "501-505") eine Kopie der Instanz samt Server Socket; bereits belegte Ports werden übersprungen. Damit lassen sich Mehrfach-Anbindungen (z. B. Solarpark mit fünf Gegenstellen auf Ports 501-505) aus einer fertig konfigurierten Instanz heraus aufbauen
+- Neu: Formular-Aktion "Weitere Schnittstellen anlegen" - erzeugt pro angegebenem Port (z. B. "501-505") eine Kopie der Instanz samt Server Socket; bereits belegte Ports werden übersprungen. Damit lassen sich Mehrfach-Anbindungen (z. B. mehrere Gegenstellen auf Ports 501-505) aus einer fertig konfigurierten Instanz heraus aufbauen
 
 ## 1.0.2 (2026-07-12)
 

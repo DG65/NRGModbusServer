@@ -176,8 +176,8 @@ check('Timeout: Quell-Register überschreibt feste Dauer', MBSLVTimeoutGuard::ef
 check('Timeout: Quell-Register in Sekunden', MBSLVTimeoutGuard::effectiveSeconds(9999, 42.0, 's') === 42.0);
 check('Timeout: nie geschrieben (lastWrite<=0) -> nie abgelaufen', MBSLVTimeoutGuard::isExpired(999999, 0, 1.0) === false);
 check('Timeout: Dauer 0 deaktiviert die Regel', MBSLVTimeoutGuard::isExpired(999999, 1, 0.0) === false);
-check('Timeout: Solarpark-Beispiel (5006=5 min, 10s-Zyklus, nach 4 min noch gültig)', MBSLVTimeoutGuard::isExpired(1000 + 240, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === false);
-check('Timeout: Solarpark-Beispiel (nach 6 min abgelaufen)', MBSLVTimeoutGuard::isExpired(1000 + 360, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === true);
+check('Timeout: Direktvermarktungs-Beispiel (5006=5 min, 10s-Zyklus, nach 4 min noch gültig)', MBSLVTimeoutGuard::isExpired(1000 + 240, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === false);
+check('Timeout: Direktvermarktungs-Beispiel (nach 6 min abgelaufen)', MBSLVTimeoutGuard::isExpired(1000 + 360, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === true);
 
 // --- MBSLVRegisterMemory: Speicherzellen (beschreibbar, ohne Variable) ---------
 

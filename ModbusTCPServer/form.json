@@ -398,7 +398,7 @@
       "items": [
         {
           "type": "Label",
-          "caption": "Legt für jeden angegebenen Port eine Kopie dieser Instanz samt Server Socket an (Kopie der zuletzt gespeicherten Konfiguration; bereits belegte Ports werden übersprungen). Beispiel für einen Solarpark mit fünf Anbindungen: erst diese Instanz fertig konfigurieren und übernehmen, dann '501-505' eintragen."
+          "caption": "Legt für jeden angegebenen Port eine Kopie dieser Instanz samt Server Socket an (Kopie der zuletzt gespeicherten Konfiguration; bereits belegte Ports werden übersprungen). Beispiel für mehrere Gegenstellen mit je eigenem Port: erst diese Instanz fertig konfigurieren und übernehmen, dann z. B. '502-505' eintragen."
         },
         {
           "type": "RowLayout",
@@ -412,6 +412,7 @@
             {
               "type": "Button",
               "caption": "Instanzen anlegen",
+              "confirm": "Für jeden angegebenen Port wird eine neue Instanz samt Server Socket angelegt und der Port sofort geöffnet. Kopiert wird die zuletzt gespeicherte Konfiguration dieser Instanz; diese selbst bleibt unverändert. Fortfahren?",
               "onClick": "echo MBSLV_CreateSiblings($id, $ClonePorts);"
             }
           ]

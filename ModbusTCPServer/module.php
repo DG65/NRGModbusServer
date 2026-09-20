@@ -80,7 +80,7 @@ class ModbusTCPServer extends IPSModule
         // Register 5002 heißt auf realer blue'Log-Hardware PPC_P_SET_RPC_ABS
         // (absoluter Watt-Sollwert, Geschwister von 5000/REL) - im öffentlichen
         // Datenblatt nur als "reserviert" ohne Namen geführt. Bestätigt an einer
-        // echten Anlage (Solarpark Hofweier, 01.09.2026 via EMS-Sitzung): dort
+        // echten Anlage (Feldeinsatz, 01.09.2026): dort
         // schreibt die Park-Steuerung AUSSCHLIESSLICH auf ABS, REL bleibt
         // unangetastet - keine Priorisierungslogik zwischen beiden beobachtet.
         // Wir speichern 5002 hier bewusst nur als Passthrough (kein Effekt auf
@@ -608,6 +608,10 @@ class ModbusTCPServer extends IPSModule
             }
         }
 
+        // Die eigene Instanz bleibt unverändert: gelesen wird nur ihre gespeicherte
+        // Konfiguration, geschrieben wird ausschließlich auf die NEU angelegten
+        // Instanzen und deren Server Socket. Der Formular-Button fragt vorher
+        // ausdrücklich nach (confirm), es passiert also nichts ungefragt.
         $config = json_decode(IPS_GetConfiguration($this->InstanceID), true);
         $baseName = preg_replace('/ \(Port \d+\)$/', '', IPS_GetName($this->InstanceID));
         $location = IPS_GetObject($this->InstanceID)['ParentID'];
@@ -832,7 +836,7 @@ class ModbusTCPServer extends IPSModule
             // normaler Zwischenzustand. IS_INACTIVE statt eines eigenen Fehler-
             // codes (>200), damit ein system-weiter Integrity-Check das nicht als
             // Störung zählt und daran hängende Watchdog-Skripte nicht unnötig
-            // auslöst (Live-Vorfall Solarpark 13.09.2026, SUITE.md-Punkt 9d).
+            // auslöst (Live-Vorfall an einer produktiven Anlage 13.09.2026, SUITE.md-Punkt 9d).
             $this->setStatusIfChanged(IS_INACTIVE);
             return;
         }
