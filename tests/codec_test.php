@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/ModbusServer.php';
 require_once __DIR__ . '/../libs/TimeoutGuard.php';
+require_once __DIR__ . '/../libs/RegisterMemory.php';
 
 $failures = 0;
 
@@ -177,6 +178,56 @@ check('Timeout: nie geschrieben (lastWrite<=0) -> nie abgelaufen', MBSLVTimeoutG
 check('Timeout: Dauer 0 deaktiviert die Regel', MBSLVTimeoutGuard::isExpired(999999, 1, 0.0) === false);
 check('Timeout: Solarpark-Beispiel (5006=5 min, 10s-Zyklus, nach 4 min noch gültig)', MBSLVTimeoutGuard::isExpired(1000 + 240, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === false);
 check('Timeout: Solarpark-Beispiel (nach 6 min abgelaufen)', MBSLVTimeoutGuard::isExpired(1000 + 360, 1000, MBSLVTimeoutGuard::effectiveSeconds(0, 5.0, 'min')) === true);
+
+// --- MBSLVRegisterMemory: Speicherzellen (beschreibbar, ohne Variable) ---------
+
+$cell = ['Address' => 5000, 'VariableID' => 0, 'Writable' => 2, 'Fixed' => 100.0];
+check('Speicherzelle: beschreibbar + ohne Variable', MBSLVRegisterMemory::isMemoryCell($cell) === true);
+check('Speicherzelle: Modus "Ja - Aktion" zählt ebenso', MBSLVRegisterMemory::isMemoryCell(['VariableID' => 0, 'Writable' => 1]) === true);
+check('Speicherzelle: nur lesen ist keine', MBSLVRegisterMemory::isMemoryCell(['VariableID' => 0, 'Writable' => 0]) === false);
+check('Speicherzelle: mit Variable ist keine', MBSLVRegisterMemory::isMemoryCell(['VariableID' => 12345, 'Writable' => 2]) === false);
+check('Speicherzelle: RPC-Zeile (Ident) ist keine', MBSLVRegisterMemory::isMemoryCell(['Ident' => 'RPC_SETPOINT', 'Writable' => true]) === false);
+check('Speicherzelle: ungültige Variable-ID unter 10000 gilt als "keine Variable"', MBSLVRegisterMemory::isMemoryCell(['VariableID' => 5, 'Writable' => 1]) === true);
+
+$mem = MBSLVRegisterMemory::decode('{}');
+check('Speicherzelle: leer -> Startwert (Festwert)', MBSLVRegisterMemory::get($mem, 5000, 100.0) === 100.0);
+$mem = MBSLVRegisterMemory::with($mem, 5000, 40.5);
+check('Speicherzelle: geschriebener Wert kommt zurück', MBSLVRegisterMemory::get($mem, 5000, 100.0) === 40.5);
+check('Speicherzelle: andere Adresse bleibt beim Startwert', MBSLVRegisterMemory::get($mem, 5006, 5.0) === 5.0);
+$roundTrip = MBSLVRegisterMemory::decode(MBSLVRegisterMemory::encode($mem));
+check('Speicherzelle: übersteht Speichern/Laden (JSON)', MBSLVRegisterMemory::get($roundTrip, 5000, 0.0) === 40.5);
+check('Speicherzelle: leerer Speicher wird als {} gespeichert', MBSLVRegisterMemory::encode([]) === '{}');
+check('Speicherzelle: NaN wird nicht übernommen', MBSLVRegisterMemory::with($mem, 5000, NAN) === $mem);
+check('Speicherzelle: INF wird nicht übernommen', MBSLVRegisterMemory::with($mem, 5000, INF) === $mem);
+check('Speicherzelle: kaputtes JSON -> leerer Speicher', MBSLVRegisterMemory::decode('kaputt') === []);
+$two = MBSLVRegisterMemory::with(MBSLVRegisterMemory::with([], 5000, 1.0), 5006, 2.0);
+$pruned = MBSLVRegisterMemory::prune($two, [5006]);
+check('Speicherzelle: prune behält nur noch vorhandene Zellen', array_keys($pruned) == [5006] && $pruned[5006] === 2.0);
+check('Speicherzelle: prune ohne Zellen leert den Speicher', MBSLVRegisterMemory::prune($two, []) === []);
+
+// Zusammenspiel mit dem Protokollkern: Master schreibt FC16, dann liest er FC03 zurück
+$stored = [];
+$server = new MBSLVModbusServer(
+    [['Area' => MBSLVModbusServer::AREA_HOLDING, 'Address' => 5000, 'DataType' => 'float32', 'VariableID' => 0, 'Factor' => 1.0, 'Fixed' => 100.0, 'Writable' => 2]],
+    false, 1, false, MBSLVModbusServer::UNMAPPED_ZERO,
+    function (array $row) use (&$stored): float {
+        return MBSLVRegisterMemory::get($stored, (int) $row['Address'], (float) $row['Fixed']);
+    },
+    function (array $row, float $value) use (&$stored): void {
+        if (MBSLVRegisterMemory::isMemoryCell($row)) {
+            $stored = MBSLVRegisterMemory::with($stored, (int) $row['Address'], $value);
+        }
+    },
+    function (string $topic, string $message): void {
+    }
+);
+$read = mbap(20, 1, chr(3) . pack('nn', 5000, 2));
+$respFloat = function (string $resp): float {
+    return unpack('G', substr($resp, 9, 4))[1];
+};
+check('Speicherzelle E2E: vor dem ersten Schreiben liefert sie den Startwert', abs($respFloat($server->process($read)) - 100.0) < 1e-6);
+$server->process(mbap(21, 1, chr(16) . pack('nnC', 5000, 2, 4) . pack('G', 37.5)));
+check('Speicherzelle E2E: nach FC16 liefert FC03 den geschriebenen Wert', abs($respFloat($server->process($read)) - 37.5) < 1e-6);
 
 echo $failures === 0 ? "\nAlle Tests bestanden.\n" : "\n$failures Test(s) fehlgeschlagen!\n";
 exit($failures === 0 ? 0 : 1);

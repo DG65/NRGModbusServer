@@ -41,6 +41,17 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   fälschlich durchgestartet (SUITE.md 9d). 201 bleibt reserviert für den
   echten Fehlerfall (`Open`=true, aber Socket erreicht keinen aktiven Status).
 
+- Speicherzellen (`libs/RegisterMemory.php`, `MBSLVRegisterMemory`): beschreibbare
+  Zeile OHNE Variable (`VariableID` < 10000, Schreiben 1/2, kein `Ident`) merkt den
+  geschriebenen Registerwert im Attribut `RegisterMemory` (Adresse => Wert, wie
+  übertragen, mit Faktor), Festwert = Startwert. Grund: Variablen von
+  ModBus-Devices sind schreibgeschützt, `SetValue` von außen scheitert (Solarpark
+  20.09.2026) - das ModBus-Device liest den Wert stattdessen als Client vom eigenen
+  Server zurück. `applyValueToTarget()` und `currentRegisterValue()` kennen den Fall,
+  `ApplyChanges()` räumt Einträge gelöschter Zeilen ab. NIE "Ja - Aktion" auf
+  Variablen eines ModBus-Devices setzen, das denselben Server abfragt: das schreibt
+  per FC16 zurück in den eigenen Server (Endlosschleife).
+
 ## Tests
 
 Der Protokollkern `libs/ModbusServer.php` ist IPS-frei und CLI-testbar:

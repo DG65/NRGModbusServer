@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.0 (2026-09-21)
+
+- Neu: Speicherzellen - eine beschreibbare Registerzeile OHNE zugeordnete Variable merkt sich den vom Master geschriebenen Wert (dauerhaft, auch nach Neustart) und liefert ihn beim Lesen zurück, wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert bis zum ersten Schreibzugriff, gemerkt wird der Registerwert wie übertragen (bereits mit Faktor). Behebt den Fall, dass ein Direktvermarkter Sollwerte schreibt, die ein ModBus-Device zurückliest: dessen Variablen sind schreibgeschützt, `SetValue` von außen scheiterte dort mit "Variable is marked as read-only" (Live-Befund Solarpark 20.09.2026, der Schreibmodus "Ja - direkt" war für Variablen von ModBus-Devices nie bestätigt). Timeout-Absicherung funktioniert mit Speicherzellen (Rückfallwert wird in die Zelle geschrieben, Quell-Register darf eine Speicherzelle sein). Verhaltensänderung: beschreibbare Zeilen ohne Variable verwarfen den Wert bisher stillschweigend, sie merken ihn jetzt. Reiner Rechenkern in libs/RegisterMemory.php, CLI-getestet (18 neue Tests, u. a. Schreiben per FC16 und Zurücklesen per FC03)
+- Doku: Formular-Panel, README und Anleitung "Bestehenden Modbus-Server ersetzen" beschreiben die Speicherzelle und ihren Unterschied zu "Ja - direkt"; Spalte "Festwert" heißt jetzt "Festwert / Startwert"
+
 ## 1.9.0 (2026-09-20)
 
 - Umbenennung Slave -> Server, passend zur Begriffswahl der Modbus-Spezifikation (Client/Server): Bibliothek "NRG-Stack ModbusServer", Modul und PHP-Klasse "ModbusTCPServer" (Ordner ModbusTCPServer), Repo github.com/DG65/NRGModbusServer (die alte URL leitet GitHub weiter). Modul-GUID, Präfix MBSLV_, Idents, Eigenschaften und Variablen unverändert - bestehende Instanzen bleiben zugeordnet, Skripte mit MBSLV_-Aufrufen laufen weiter. Die bisherigen Namen "Modbus TCP Slave", "ModbusTCPSlave" und "NRGModbusTCPSlave" bleiben als Suchbegriffe erhalten. Neu angelegte Server Sockets heißen "Server Socket (Modbus TCP Server Port ...)"

@@ -16,7 +16,7 @@
         },
         {
           "type": "Label",
-          "caption": "Registertabelle: Jede Zeile bildet einen Wert ab. 'Adresse' ist die 0-basierte Protokolladresse des ersten Words; Mehrwort-Typen (int32/uint32/float32 = 2 Words, float64 = 4 Words) belegen die Folgeadressen. 'Faktor' skaliert von der Variable zum Register (Registerwert = Variablenwert x Faktor; beim Schreiben umgekehrt). Ist keine Variable zugeordnet, wird der 'Festwert' geliefert."
+          "caption": "Registertabelle: Jede Zeile bildet einen Wert ab. 'Adresse' ist die 0-basierte Protokolladresse des ersten Words; Mehrwort-Typen (int32/uint32/float32 = 2 Words, float64 = 4 Words) belegen die Folgeadressen. 'Faktor' skaliert von der Variable zum Register (Registerwert = Variablenwert x Faktor; beim Schreiben umgekehrt). Ist keine Variable zugeordnet und Schreiben auf 'Nein', wird der 'Festwert' geliefert. Ist keine Variable zugeordnet, Schreiben aber erlaubt, arbeitet die Zeile als Speicherzelle (siehe unten)."
         },
         {
           "type": "Label",
@@ -24,7 +24,11 @@
         },
         {
           "type": "Label",
-          "caption": "Bestehenden Modbus-Server (Slave) ersetzen (z. B. Simulator wie ModRSsim2 oder eine SPS): 1) Registertabelle exakt wie beim alten Server anlegen - Adressen, Datentypen, Word-Order und Unit-ID übernehmen, im Zweifel 'Anfragen an fremde Unit-IDs ablehnen' zunächst AUS lassen. 2) Dieselben IPS-Variablen wie bisher verknüpfen, damit vorhandene Skripte/Ereignisse unverändert weiterlaufen; gehören die Variablen einer anderen Instanz (typisch: ein bisheriges ModBus-Device, das den alten Server bedient hat), Schreibmodus 'Ja - direkt' wählen. 3) Alten Server auf diesem Port stoppen, dann den Server Socket dieser Instanz auf demselben Port öffnen. 4) Kontrolle über die Verbindungszeile oben ('zuletzt ... Uhr' muss im Polltakt des Clients weiterlaufen) und im Debug-Fenster der Instanz. Rückweg jederzeit: Server Socket schließen, alten Server starten."
+          "caption": "Speicherzelle (Zeile ohne Variable, Schreiben 'Ja'): Wie bei einem klassischen Modbus-Server (z. B. ModRSsim2) merkt sich das Register den vom Master geschriebenen Wert und liefert ihn beim nächsten Lesen zurück - dauerhaft, auch nach einem Neustart. Der 'Festwert' ist nur der Startwert, bis zum ersten Schreibzugriff. Die Schreib-Varianten 'Aktion' und 'direkt' verhalten sich hier gleich. Typisch: Sollwert-Register, die ein Direktvermarkter beschreibt und ein ModBus-Device (oder ein anderes Gerät im eigenen Netz) von diesem Server zurückliest. Der Wert steht in der Spalte 'Wert'; wird die Zeile gelöscht oder einer Variable zugeordnet, verfällt der gemerkte Wert. Die Timeout-Absicherung funktioniert auch mit Speicherzellen (der Rückfallwert wird in die Zelle geschrieben)."
+        },
+        {
+          "type": "Label",
+          "caption": "Bestehenden Modbus-Server (Slave) ersetzen (z. B. Simulator wie ModRSsim2 oder eine SPS): 1) Registertabelle exakt wie beim alten Server anlegen - Adressen, Datentypen, Word-Order und Unit-ID übernehmen, im Zweifel 'Anfragen an fremde Unit-IDs ablehnen' zunächst AUS lassen. 2) Dieselben IPS-Variablen wie bisher verknüpfen, damit vorhandene Skripte/Ereignisse unverändert weiterlaufen; gehören die Variablen einer anderen Instanz (typisch: ein bisheriges ModBus-Device, das den alten Server bedient hat), Schreibmodus 'Ja - direkt' wählen. Ist die bisherige Variable schreibgeschützt oder gehört sie einem ModBus-Device, das selbst den Server abfragt (Sollwerte, die ein Direktvermarkter schreibt und ein ModBus-Device zurückliest), lassen Sie stattdessen die Variable leer: die Zeile wird zur Speicherzelle, und das ModBus-Device liest den Wert von diesem Server. 3) Alten Server auf diesem Port stoppen, dann den Server Socket dieser Instanz auf demselben Port öffnen. 4) Kontrolle über die Verbindungszeile oben ('zuletzt ... Uhr' muss im Polltakt des Clients weiterlaufen) und im Debug-Fenster der Instanz. Rückweg jederzeit: Server Socket schließen, alten Server starten."
         },
         {
           "type": "Label",
@@ -172,7 +176,7 @@
           "edit": { "type": "NumberSpinner", "digits": 6 }
         },
         {
-          "caption": "Festwert",
+          "caption": "Festwert / Startwert",
           "name": "Fixed",
           "width": "90px",
           "add": 0.0,

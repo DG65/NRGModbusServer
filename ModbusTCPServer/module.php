@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../libs/ModbusServer.php';
 require_once __DIR__ . '/../libs/TimeoutGuard.php';
+require_once __DIR__ . '/../libs/RegisterMemory.php';
 
 /**
  * ModbusTCPServer (NRG-Stack; früher "ModbusTCPSlave", als Alias weiter auffindbar)
@@ -88,6 +89,8 @@ class ModbusTCPServer extends IPSModule
         // REL in UNSERE Slave-Emulation schreiben könnte (offen, siehe Memory).
         $this->RegisterAttributeFloat('WatchdogValue', 0.0);
         $this->RegisterAttributeString('ScratchValues', '{}');
+        // gemerkte Werte der Speicherzellen (beschreibbare Zeilen ohne Variable), Adresse => Registerwert
+        $this->RegisterAttributeString('RegisterMemory', '{}');
         // Letzte Zugriffszeit je Registeradresse (r=gelesen/abgefragt,
         // w=geschrieben/empfangen) - Sichtbarkeit "was geht wirklich" in der
         // Registertabelle, unabhaengig von der einen globalen LastRequest-Variable
@@ -146,8 +149,28 @@ class ModbusTCPServer extends IPSModule
             $this->SetTimerInterval('Expire', 0);
         }
 
+        $this->pruneRegisterMemory();
+
         $this->SetTimerInterval('Watch', 60000);
         $this->UpdateHealth();
+    }
+
+    /** Verwirft gemerkte Werte von Adressen, die keine Speicherzelle mehr sind (Zeile gelöscht oder auf Variable umgestellt) */
+    private function pruneRegisterMemory(): void
+    {
+        $rows = json_decode($this->ReadPropertyString('Registers'), true);
+        $addresses = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $normalized = self::normalizeGenericRow($row);
+            if (MBSLVRegisterMemory::isMemoryCell($normalized)) {
+                $addresses[] = $normalized['Address'];
+            }
+        }
+        $current = $this->ReadAttributeString('RegisterMemory');
+        $pruned = MBSLVRegisterMemory::encode(MBSLVRegisterMemory::prune(MBSLVRegisterMemory::decode($current), $addresses));
+        if ($pruned !== $current) {
+            $this->WriteAttributeString('RegisterMemory', $pruned);
+        }
     }
 
     /**
@@ -301,6 +324,8 @@ class ModbusTCPServer extends IPSModule
             $row = array_merge($row, $this->registerActivityLabels($activity, (int) ($row['Address'] ?? 0)));
             $factor = (float) ($row['Factor'] ?? 1.0);
             $row['CurrentValue'] = $this->formatCurrentValue($this->currentRegisterValue([
+                'Address'    => (int) ($row['Address'] ?? 0),
+                'Writable'   => $row['Writable'],
                 'VariableID' => (int) ($row['VariableID'] ?? 0),
                 'Factor'     => $factor == 0.0 ? 1.0 : $factor,
                 'Fixed'      => (float) ($row['Fixed'] ?? 0.0)
@@ -1108,6 +1133,10 @@ class ModbusTCPServer extends IPSModule
             }
             return (float) $value * $row['Factor'];
         }
+        if (MBSLVRegisterMemory::isMemoryCell($row)) {
+            $memory = MBSLVRegisterMemory::decode($this->ReadAttributeString('RegisterMemory'));
+            return MBSLVRegisterMemory::get($memory, (int) ($row['Address'] ?? 0), (float) $row['Fixed']);
+        }
         return $row['Fixed'];
     }
 
@@ -1134,6 +1163,13 @@ class ModbusTCPServer extends IPSModule
      */
     private function applyValueToTarget(array $row, float $value): void
     {
+        // Speicherzelle (beschreibbar, ohne Variable): Wert merken, beim Lesen kommt er zurück
+        if (MBSLVRegisterMemory::isMemoryCell($row)) {
+            $memory = MBSLVRegisterMemory::with(MBSLVRegisterMemory::decode($this->ReadAttributeString('RegisterMemory')), (int) $row['Address'], $value);
+            $this->WriteAttributeString('RegisterMemory', MBSLVRegisterMemory::encode($memory));
+            $this->SendDebug('Schreiben', sprintf('Register %d -> Speicherzelle = %s', $row['Address'], json_encode($value)), 0);
+            return;
+        }
         $variable = $row['VariableID'];
         if ($variable < 10000 || !IPS_VariableExists($variable)) {
             $this->SendDebug('Schreiben', sprintf('Register %d: keine Zielvariable zugeordnet', $row['Address']), 0);

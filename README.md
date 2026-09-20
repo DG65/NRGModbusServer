@@ -1,7 +1,7 @@
 # NRG-Stack ModbusServer
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.9.0-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.10.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml)
@@ -55,7 +55,7 @@ Die Word-Reihenfolge bei Mehrwort-Typen ist umschaltbar (ABCD/CDAB).
 
 **Registertabelle:** Pro Zeile Adresse (0-basiert), Bereich (Holding/Input), Datentyp,
 IPS-Variable, aktueller Wert (nur Anzeige, siehe unten), Skalierungsfaktor, optionaler Festwert
-(wenn keine Variable zugeordnet ist) und Schreibmodus. Dieselbe Variable darf mehrfach gemappt
+(wenn keine Variable zugeordnet ist; bei einer Speicherzelle der Startwert) und Schreibmodus. Dieselbe Variable darf mehrfach gemappt
 werden (z. B. float32- und int32-Darstellung parallel).
 
 **Schreibmodus (Spalte „Schreiben"):**
@@ -65,6 +65,24 @@ werden (z. B. float32- und int32-Darstellung parallel).
 | Nein | Master darf nur lesen; Schreibversuche werden quittiert, aber verworfen |
 | Ja – Aktion | `RequestAction`, falls die Variable eine Aktion besitzt (z. B. um einen Aktor zu schalten), sonst `SetValue` |
 | Ja – direkt | immer `SetValue`; die Aktion der Variable wird bewusst nicht ausgelöst – nötig für Variablen fremder Instanzen (z. B. ModBus-Device-Register), deren Aktion sonst in ein anderes Gerät schreiben würde |
+
+**Speicherzellen (Zeile ohne Variable, Schreiben „Ja"):** Ein Modbus-Server ist im Kern ein
+Speicher – was der Client in ein Register schreibt, bekommt er beim nächsten Lesen zurück. Genau so
+arbeitet eine beschreibbare Zeile, der keine Variable zugeordnet ist: Das Modul merkt sich den
+geschriebenen Wert (dauerhaft, auch nach einem Neustart) und liefert ihn beim Lesen wieder aus. Der
+Festwert der Zeile ist nur der **Startwert** bis zum ersten Schreibzugriff, „Aktion" und „direkt"
+verhalten sich hier gleich. Der gemerkte Wert steht in der Spalte „Wert"; wird die Zeile gelöscht oder
+einer Variable zugeordnet, verfällt er. Die Timeout-Absicherung funktioniert auch mit Speicherzellen
+(der Rückfallwert wird in die Zelle geschrieben, und eine Speicherzelle darf als Quell-Register für
+die Dauer dienen).
+
+Typischer Einsatz: Ein Direktvermarkter schreibt einen Sollwert, und ein zweites Gerät – etwa ein
+ModBus-Device in derselben IPS-Installation – liest ihn von diesem Server zurück und legt ihn in
+seiner eigenen Variable ab. Hier wäre „Ja – direkt" auf die Variable des ModBus-Device wirkungslos,
+denn deren Variablen sind schreibgeschützt (`SetValue` von außen scheitert mit „Variable is marked as
+read-only"). Mit einer Speicherzelle übernimmt das ModBus-Device den Wert per Abfrage – genauso wie
+früher von einem Simulator wie ModRSsim2, alle nachgelagerten Ereignisse und Skripte laufen
+unverändert weiter.
 
 **Zugriffszeiten je Register:** Die Registertabelle zeigt zusätzlich zwei Spalten „Empfangen"
 (zuletzt von einem Master GESCHRIEBEN) und „Abgefragt" (zuletzt von einem Master GELESEN) –
@@ -89,7 +107,8 @@ ein Direktvermarkter oder Leitsystem bislang angebunden war):
    Unit-IDs ablehnen" zunächst ausschalten (das Debug-Fenster zeigt die tatsächlich verwendete).
 2. **Dieselben IPS-Variablen verknüpfen** wie bisher, damit vorhandene Skripte und Ereignisse
    unverändert weiterlaufen. Gehören die Variablen einer anderen Instanz (typisch: einem
-   ModBus-Device, das bisher den alten Server bedient hat), Schreibmodus **„Ja – direkt"** wählen.
+   ModBus-Device, das bisher den alten Server bedient hat), Schreibmodus **„Ja – direkt"** wählen. Ist die bisherige Variable schreibgeschützt, weil ein ModBus-Device
+   den Wert vom Server zurückliest, die Variable leer lassen (→ Speicherzelle, siehe oben).
 3. **Umschalten:** alten Server auf diesem Port stoppen, dann den Server Socket dieser Instanz
    auf demselben Port öffnen. Läuft IPS auf einem anderen Rechner als der alte Server, muss der
    Client (bzw. dessen VPN/NAT) auf die IPS-Adresse umgestellt werden.
