@@ -52,10 +52,20 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   Variablen eines ModBus-Devices setzen, das denselben Server abfragt: das schreibt
   per FC16 zurück in den eigenen Server (Endlosschleife).
 
+- Formular (`GetConfigurationForm()`): Reihenfolge nach Verbund-Konvention - Zweck
+  (`PurposeIntro`), Neu (`NewsBanner`, `NEWS_VERSION` nur bei wichtigen Änderungen
+  anheben), Doku (`DocPanel` in form.json, Version aus der Bibliothek), Fachpanels,
+  Lizenz (`LicenseHint`, ganz unten, nicht wegklickbar). Ausblenden wird über alle
+  Instanzen geteilt (`PropagateDismiss`/`AdoptDismissState`). Link-Buttons immer
+  `'onClick' => "echo '<URL>';", 'link' => true`. Ein Forum-Hinweis kommt erst, wenn
+  es einen Modul-Thread gibt.
+- Jeder `ReadProperty…()`/`ReadAttribute…()`-Aufruf trägt einen Typ-Cast (SUITE.md 9c).
+
 ## Tests
 
 Der Protokollkern `libs/ModbusServer.php` ist IPS-frei und CLI-testbar:
-`php tests/codec_test.php`. Bei jeder Änderung am Codec laufen lassen.
+`php tests/codec_test.php`. Bei jeder Änderung am Codec laufen lassen. Das Modul selbst
+läuft mit Stub-Umgebung in `php tests/module_test.php` (Formular, Speicherzellen).
 Manueller Gegentest: `modpoll` (Beispiele im README).
 
 ## Branch-Modell

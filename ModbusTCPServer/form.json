@@ -1,13 +1,9 @@
 {
   "elements": [
     {
-      "type": "Label",
-      "name": "PortInfo",
-      "caption": "Verbindungsstatus wird beim Öffnen ermittelt..."
-    },
-    {
       "type": "ExpansionPanel",
-      "caption": "📖 Doku",
+      "name": "DocPanel",
+      "caption": "📖  Dokumentation & Hilfe",
       "expanded": false,
       "items": [
         {
@@ -55,6 +51,11 @@
           "caption": "Timeout-Absicherung (Panel weiter unten): Ohne RPC-Vorlage kennt die Registertabelle von sich aus KEIN Ablaufdatum für einen geschriebenen Wert - ein einmal gesetzter Sollwert bleibt bei Verbindungsverlust des Masters unbegrenzt stehen. Für einzelne schreibbare Register lässt sich optional eine eigene Gültigkeitsdauer nachrüsten: Wird das Register so lange nicht neu beschrieben, setzt das Modul automatisch einen Rückfallwert - unabhängig davon, ob die RPC-Vorlage überhaupt verwendet wird. Beispiel Meteocontrol blue'Log: Sollwert-Register 5000, Gültigkeitsdauer kommt aus Register 5006 (vom Master selbst in Minuten mitgeliefert), Rückfallwert 100 (keine Abregelung)."
         }
       ]
+    },
+    {
+      "type": "Label",
+      "name": "PortInfo",
+      "caption": "Verbindungsstatus wird beim Öffnen ermittelt..."
     },
     {
       "type": "RowLayout",

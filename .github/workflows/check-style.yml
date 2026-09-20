@@ -16,3 +16,5 @@ jobs:
         run: find . -name "*.php" -print0 | xargs -0 -n1 php -l
       - name: Protokollkern-Tests
         run: php tests/codec_test.php
+      - name: Modul-Tests (Stub-Umgebung)
+        run: php tests/module_test.php

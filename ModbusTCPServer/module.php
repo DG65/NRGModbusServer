@@ -31,6 +31,12 @@ class ModbusTCPServer extends IPSModule
     // IPS Server Socket (I/O), wird als Parent benötigt
     private const SERVER_SOCKET_MODULE = '{8062CF2B-600E-41D6-AD4B-1BA66C32D6ED}';
     // Datenpaket "Erweitert (Socket)": Empfang vom Server Socket
+    // Formular-Konvention (SUITE.md "Einheitliche Formular-Optik"): News-Panel je Version
+    // einmalig bestätigbar, Lizenz-/Spendenhinweis fest verdrahtet
+    private const NEWS_VERSION = '1.11';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGModbusServer/blob/main/LICENSE';
+    private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
+
     private const RX_DATA_ID = '{7A1272A4-CBDB-46EF-BFC6-DCF4A53D2FC7}';
     // Datenpaket "Erweitert (Socket)": gerichtetes Senden an einen Client
     private const TX_DATA_ID = '{C8792760-65CF-4C53-B5C7-A30FCC84FEFE}';
@@ -91,6 +97,9 @@ class ModbusTCPServer extends IPSModule
         $this->RegisterAttributeString('ScratchValues', '{}');
         // gemerkte Werte der Speicherzellen (beschreibbare Zeilen ohne Variable), Adresse => Registerwert
         $this->RegisterAttributeString('RegisterMemory', '{}');
+        // Formular-Hinweise (Ausblenden wird über alle Instanzen dieses Moduls geteilt)
+        $this->RegisterAttributeBoolean('PurposeIntroGone', false);
+        $this->RegisterAttributeString('SeenNews', '');
         // Letzte Zugriffszeit je Registeradresse (r=gelesen/abgefragt,
         // w=geschrieben/empfangen) - Sichtbarkeit "was geht wirklich" in der
         // Registertabelle, unabhaengig von der einen globalen LastRequest-Variable
@@ -120,7 +129,7 @@ class ModbusTCPServer extends IPSModule
         // Sichtbare Kommunikationsanzeige, unabhängig vom RPC-Profil
         $this->registerVarOnce('int', 'LastRequest', 'Letzte Modbus-Anfrage', '~UnixTimestamp', 5);
 
-        if ($this->ReadPropertyBoolean('RPCEnabled')) {
+        if ((bool) $this->ReadPropertyBoolean('RPCEnabled')) {
             // nur bei echter Neuanlage registrieren (SUITE.md-Stolperstein 3)
             $this->registerVarOnce('float', 'Setpoint', 'DV-Sollwertvorgabe', 'MBSLV.Percent', 10);
             $this->registerVarOnce('bool', 'SetpointValid', 'DV-Vorgabe gültig', '~Switch', 20);
@@ -130,7 +139,7 @@ class ModbusTCPServer extends IPSModule
             $this->registerVarOnce('int', 'LastWrite', 'Letzte DV-Vorgabe', '~UnixTimestamp', 60);
 
             if ($this->GetValue('ValidTime') < 1) {
-                $this->SetValue('ValidTime', $this->ReadPropertyFloat('RPCDefaultValidTime'));
+                $this->SetValue('ValidTime', (float) $this->ReadPropertyFloat('RPCDefaultValidTime'));
             }
 
             // Zustand nach Neustart/Übernehmen wiederherstellen
@@ -142,7 +151,7 @@ class ModbusTCPServer extends IPSModule
                     $this->SetTimerInterval('Expire', $remaining * 1000);
                 }
             } else {
-                $this->SetValue('Effective', $this->ReadPropertyFloat('RPCFallback'));
+                $this->SetValue('Effective', (float) $this->ReadPropertyFloat('RPCFallback'));
                 $this->SetTimerInterval('Expire', 0);
             }
         } else {
@@ -150,6 +159,7 @@ class ModbusTCPServer extends IPSModule
         }
 
         $this->pruneRegisterMemory();
+        $this->AdoptDismissFromSibling();
 
         $this->SetTimerInterval('Watch', 60000);
         $this->UpdateHealth();
@@ -158,7 +168,7 @@ class ModbusTCPServer extends IPSModule
     /** Verwirft gemerkte Werte von Adressen, die keine Speicherzelle mehr sind (Zeile gelöscht oder auf Variable umgestellt) */
     private function pruneRegisterMemory(): void
     {
-        $rows = json_decode($this->ReadPropertyString('Registers'), true);
+        $rows = json_decode((string) $this->ReadPropertyString('Registers'), true);
         $addresses = [];
         foreach (is_array($rows) ? $rows : [] as $row) {
             $normalized = self::normalizeGenericRow($row);
@@ -166,10 +176,171 @@ class ModbusTCPServer extends IPSModule
                 $addresses[] = $normalized['Address'];
             }
         }
-        $current = $this->ReadAttributeString('RegisterMemory');
+        $current = (string) $this->ReadAttributeString('RegisterMemory');
         $pruned = MBSLVRegisterMemory::encode(MBSLVRegisterMemory::prune(MBSLVRegisterMemory::decode($current), $addresses));
         if ($pruned !== $current) {
             $this->WriteAttributeString('RegisterMemory', $pruned);
+        }
+    }
+
+    /** "Wozu dieses Modul?" - ganz oben, einmalig wegklickbar (SUITE.md Formular-Konvention, Punkt 0) */
+    private function PurposeIntro(): ?array
+    {
+        if ((bool) $this->ReadAttributeBoolean('PurposeIntroGone')) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
+            'caption' => '👋  Wozu dieses Modul?',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Dieses Modul macht IP-Symcon zum Modbus-TCP-Server: Externe Geräte und Systeme (Modbus-Clients, z. B. ein Leitsystem, ein Energiemanagement oder ein Direktvermarkter) können darüber frei gewählte Symcon-Variablen lesen und beschreiben.'],
+                ['type' => 'Label', 'caption' => 'Der Nutzen: Werte aus Symcon lassen sich an Systeme weitergeben, die nur Modbus sprechen, und Sollwerte von dort entgegennehmen - oder ein bekanntes Modbus-Gerät (z. B. einen Zähler oder Datenlogger) nachbilden, das eine Gegenstelle erwartet.'],
+                ['type' => 'Label', 'caption' => 'Möchten Sie stattdessen Werte von Modbus-Geräten einlesen? Dafür gibt es im NRG-Stack InverterHub (Wechselrichter), MeterHub (Zähler) und ChargerHub (Wallboxen).'],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckPurposeIntro($id);'],
+            ],
+        ];
+    }
+
+    public function AckPurposeIntro(): void
+    {
+        $this->WriteAttributeBoolean('PurposeIntroGone', true);
+        $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+        $this->PropagateDismiss('PurposeIntro');
+    }
+
+    /** "Neu in Version X.Y" - aufgeklappt, pro Version einmalig bestätigbar (Punkt 1) */
+    private function NewsBanner(): ?array
+    {
+        if ((string) $this->ReadAttributeString('SeenNews') === self::NEWS_VERSION) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'expanded' => true,
+            'caption' => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'items' => [
+                ['type' => 'Label', 'caption' => '• 🆕 Speicherzellen: Eine beschreibbare Registerzeile ohne Variable merkt sich den vom Client geschriebenen Wert und liefert ihn beim Lesen zurück - wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert. Praktisch für Sollwerte, die ein anderes Gerät, etwa ein ModBus-Device in derselben Installation, von diesem Server zurückliest; dessen Variablen sind schreibgeschützt und lassen sich nicht direkt beschreiben.'],
+                ['type' => 'Label', 'caption' => '• 🔧 Neuer Name: „Modbus-TCP-Server" statt „Slave", passend zur Modbus-Spezifikation (Client/Server). Die alten Namen bleiben als Suchbegriffe erhalten, bestehende Instanzen bleiben unverändert zugeordnet.'],
+                ['type' => 'Label', 'caption' => '• 🔧 „Instanzen anlegen" (weitere Schnittstellen) fragt jetzt vorher nach und nennt, dass die Ports sofort geöffnet werden.'],
+                ['type' => 'Label', 'caption' => '• 🔗 Bei mehreren Instanzen: „Wozu dieses Modul?" und „Was ist neu?" müssen nur einmal weggeklickt werden - ein Klick gilt für alle Instanzen dieses Moduls.'],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckNews($id);'],
+            ],
+        ];
+    }
+
+    public function AckNews(): void
+    {
+        $this->WriteAttributeString('SeenNews', self::NEWS_VERSION);
+        $this->UpdateFormField('NewsPanel', 'visible', false);
+        $this->PropagateDismiss('News', self::NEWS_VERSION);
+    }
+
+    /**
+     * Ausblenden der Hinweise über alle Instanzen dieses Moduls teilen (SUITE.md
+     * "Ausblenden über mehrere Instanzen desselben Moduls teilen"): sonst müsste
+     * derselbe Hinweis bei jeder Schnittstelle einzeln weggeklickt werden. Ruft
+     * bei den Geschwistern nur den reinen Übernahme-Schritt auf, der selbst nie
+     * weiterreicht - dadurch kein Hin und Her.
+     */
+    private function PropagateDismiss(string $what, string $value = ''): void
+    {
+        foreach (IPS_GetInstanceListByModuleID(self::MODULE_GUID) as $sibling) {
+            if ($sibling === $this->InstanceID) {
+                continue;
+            }
+            try {
+                MBSLV_AdoptDismissState($sibling, $what, $value);
+            } catch (\Throwable $e) {
+                // eine Instanz mitten im Neuladen darf das Ausblenden nicht mitreißen
+            }
+        }
+    }
+
+    /** Reiner Übernahme-Schritt für eine Geschwister-Instanz, siehe PropagateDismiss() */
+    public function AdoptDismissState(string $what, string $value): void
+    {
+        switch ($what) {
+            case 'PurposeIntro':
+                $this->WriteAttributeBoolean('PurposeIntroGone', true);
+                $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+                break;
+            case 'News':
+                $this->WriteAttributeString('SeenNews', $value);
+                $this->UpdateFormField('NewsPanel', 'visible', false);
+                break;
+        }
+    }
+
+    /** Ausblende-Stand dieser Instanz, damit neu angelegte Instanzen ihn übernehmen können */
+    public function GetDismissState(): array
+    {
+        return [
+            'purposeIntroGone' => (bool) $this->ReadAttributeBoolean('PurposeIntroGone'),
+            'seenNews'         => (string) $this->ReadAttributeString('SeenNews')
+        ];
+    }
+
+    /**
+     * Gegenrichtung: eine neue Instanz übernimmt beim ersten ApplyChanges() den
+     * Stand einer bestehenden, statt bereits bestätigte Hinweise erneut zu zeigen.
+     * Zieht nur vor, überschreibt nie einen weiter fortgeschrittenen eigenen Stand.
+     */
+    private function AdoptDismissFromSibling(): void
+    {
+        if ((bool) $this->ReadAttributeBoolean('PurposeIntroGone') && (string) $this->ReadAttributeString('SeenNews') === self::NEWS_VERSION) {
+            return;
+        }
+        foreach (IPS_GetInstanceListByModuleID(self::MODULE_GUID) as $sibling) {
+            if ($sibling === $this->InstanceID) {
+                continue;
+            }
+            try {
+                $state = MBSLV_GetDismissState($sibling);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if (!is_array($state)) {
+                continue;
+            }
+            if (!(bool) $this->ReadAttributeBoolean('PurposeIntroGone') && !empty($state['purposeIntroGone'])) {
+                $this->WriteAttributeBoolean('PurposeIntroGone', true);
+            }
+            if ((string) $this->ReadAttributeString('SeenNews') !== self::NEWS_VERSION && ($state['seenNews'] ?? '') === self::NEWS_VERSION) {
+                $this->WriteAttributeString('SeenNews', self::NEWS_VERSION);
+            }
+            break;
+        }
+    }
+
+    /**
+     * Lizenz-/Unterstützungshinweis - Wortlaut verbundweit identisch (SUITE.md
+     * "Einheitliche Formular-Optik", Punkt 5). Bewusst NICHT wegklickbar,
+     * eingeklappt, ganz unten. Link-Buttons: die URL ist die Echo-Ausgabe des
+     * onClick-Skripts, 'link' nur ein true/false-Schalter.
+     */
+    private function LicenseHint(): array
+    {
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '🧡  Über dieses Modul',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
+                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
+                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
+                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+            ],
+        ];
+    }
+
+    /** Versionsstand der Bibliothek für das Doku-Panel (dauerhaft sichtbar, ohne von Hand mitgepflegt zu werden) */
+    private function libraryVersion(): string
+    {
+        try {
+            $libraryID = IPS_GetInstance($this->InstanceID)['ModuleInfo']['LibraryID'];
+            return (string) IPS_GetLibrary($libraryID)['Version'];
+        } catch (\Throwable $e) {
+            return '';
         }
     }
 
@@ -247,7 +418,7 @@ class ModbusTCPServer extends IPSModule
      */
     public function GetRegisterActivity(): string
     {
-        return $this->ReadAttributeString('RegisterActivity');
+        return (string) $this->ReadAttributeString('RegisterActivity');
     }
 
     /**
@@ -257,7 +428,7 @@ class ModbusTCPServer extends IPSModule
     public function CheckExpire(): void
     {
         $this->SetTimerInterval('Expire', 0);
-        if (!$this->ReadPropertyBoolean('RPCEnabled') || !$this->GetValue('SetpointValid')) {
+        if (!(bool) $this->ReadPropertyBoolean('RPCEnabled') || !$this->GetValue('SetpointValid')) {
             return;
         }
         $remaining = $this->GetValue('ValidUntil') - time();
@@ -265,7 +436,7 @@ class ModbusTCPServer extends IPSModule
             $this->SetTimerInterval('Expire', $remaining * 1000);
             return;
         }
-        $fallback = $this->ReadPropertyFloat('RPCFallback');
+        $fallback = (float) $this->ReadPropertyFloat('RPCFallback');
         $this->SetValue('SetpointValid', false);
         $this->SetValue('Effective', $fallback);
         $this->SendDebug('RPC', sprintf('Sollwertvorgabe abgelaufen - Rückfall auf %.1f %%', $fallback), 0);
@@ -279,11 +450,15 @@ class ModbusTCPServer extends IPSModule
     public function GetConfigurationForm()
     {
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
-        $enabled = $this->ReadPropertyBoolean('RPCEnabled');
+        $enabled = (bool) $this->ReadPropertyBoolean('RPCEnabled');
         // Das komplette RPC-Panel erscheint erst, wenn die RPC-Schnittstelle
         // (über die Vorlage im Popup) aktiviert wurde
         $this->setFormVisibility($form['elements'], array_merge(['RPCPanel'], self::RPC_FORM_FIELDS), $enabled);
         foreach ($form['elements'] as &$element) {
+            if (($element['name'] ?? '') === 'DocPanel') {
+                $version = $this->libraryVersion();
+                array_unshift($element['items'], ['type' => 'Label', 'caption' => 'ModbusServer' . ($version !== '' ? ' ' . $version : '') . ' - Stand dieser Anleitung.']);
+            }
             if (($element['name'] ?? '') === 'PortInfo') {
                 $element['caption'] = $this->portInfoCaption();
             }
@@ -300,6 +475,12 @@ class ModbusTCPServer extends IPSModule
             }
         }
         unset($element);
+        // Reihenfolge nach Verbund-Konvention: Zweck, Neu, Doku, Fachpanels, Lizenz (ganz unten)
+        $form['elements'] = array_values(array_filter(array_merge(
+            [$this->PurposeIntro(), $this->NewsBanner()],
+            $form['elements'],
+            [$this->LicenseHint()]
+        )));
         return json_encode($form);
     }
 
@@ -311,11 +492,11 @@ class ModbusTCPServer extends IPSModule
      */
     private function registersForForm(): array
     {
-        $rows = json_decode($this->ReadPropertyString('Registers'), true);
+        $rows = json_decode((string) $this->ReadPropertyString('Registers'), true);
         if (!is_array($rows)) {
             return [];
         }
-        $activity = json_decode($this->ReadAttributeString('RegisterActivity'), true);
+        $activity = json_decode((string) $this->ReadAttributeString('RegisterActivity'), true);
         if (!is_array($activity)) {
             $activity = [];
         }
@@ -343,19 +524,19 @@ class ModbusTCPServer extends IPSModule
      */
     private function timeoutsForForm(): array
     {
-        $rules = json_decode($this->ReadPropertyString('RegisterTimeouts'), true);
+        $rules = json_decode((string) $this->ReadPropertyString('RegisterTimeouts'), true);
         if (!is_array($rules)) {
             return [];
         }
-        $registers = json_decode($this->ReadPropertyString('Registers'), true);
+        $registers = json_decode((string) $this->ReadPropertyString('Registers'), true);
         if (!is_array($registers)) {
             $registers = [];
         }
-        $activity = json_decode($this->ReadAttributeString('RegisterActivity'), true);
+        $activity = json_decode((string) $this->ReadAttributeString('RegisterActivity'), true);
         if (!is_array($activity)) {
             $activity = [];
         }
-        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        $applied = json_decode((string) $this->ReadAttributeString('TimeoutApplied'), true);
         if (!is_array($applied)) {
             $applied = [];
         }
@@ -452,7 +633,7 @@ class ModbusTCPServer extends IPSModule
     /** Anzahl der Register, für die aktuell (Timeout-Absicherung) der Rückfallwert gilt */
     private function activeTimeoutFallbackCount(): int
     {
-        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        $applied = json_decode((string) $this->ReadAttributeString('TimeoutApplied'), true);
         return is_array($applied) ? count($applied) : 0;
     }
 
@@ -480,7 +661,7 @@ class ModbusTCPServer extends IPSModule
     {
         switch ($Template) {
             case 'rpc':
-                $effective = $this->ReadPropertyBoolean('RPCEnabled') ? (int) @$this->GetIDForIdent('Effective') : 0;
+                $effective = (bool) $this->ReadPropertyBoolean('RPCEnabled') ? (int) @$this->GetIDForIdent('Effective') : 0;
                 $this->UpdateFormField('Registers', 'values', json_encode($this->templateRowsRPC($effective)));
                 $this->UpdateFormField('UnitID', 'value', 10);
                 $this->UpdateFormField('CheckUnitID', 'value', true);
@@ -678,7 +859,7 @@ class ModbusTCPServer extends IPSModule
         if ($this->pendingActivity === []) {
             return;
         }
-        $activity = json_decode($this->ReadAttributeString('RegisterActivity'), true);
+        $activity = json_decode((string) $this->ReadAttributeString('RegisterActivity'), true);
         if (!is_array($activity)) {
             $activity = [];
         }
@@ -706,19 +887,19 @@ class ModbusTCPServer extends IPSModule
      */
     private function checkRegisterTimeouts(): void
     {
-        $rules = json_decode($this->ReadPropertyString('RegisterTimeouts'), true);
+        $rules = json_decode((string) $this->ReadPropertyString('RegisterTimeouts'), true);
         if (!is_array($rules) || $rules === []) {
             return;
         }
-        $registers = json_decode($this->ReadPropertyString('Registers'), true);
+        $registers = json_decode((string) $this->ReadPropertyString('Registers'), true);
         if (!is_array($registers)) {
             $registers = [];
         }
-        $activity = json_decode($this->ReadAttributeString('RegisterActivity'), true);
+        $activity = json_decode((string) $this->ReadAttributeString('RegisterActivity'), true);
         if (!is_array($activity)) {
             $activity = [];
         }
-        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        $applied = json_decode((string) $this->ReadAttributeString('TimeoutApplied'), true);
         if (!is_array($applied)) {
             $applied = [];
         }
@@ -782,7 +963,7 @@ class ModbusTCPServer extends IPSModule
     /** Läuft aktuell ein Timeout-Rückfall für diese Adresse, wird er hier beendet */
     private function clearTimeoutFallback(int $address): void
     {
-        $applied = json_decode($this->ReadAttributeString('TimeoutApplied'), true);
+        $applied = json_decode((string) $this->ReadAttributeString('TimeoutApplied'), true);
         if (!is_array($applied) || !isset($applied[(string) $address])) {
             return;
         }
@@ -846,7 +1027,7 @@ class ModbusTCPServer extends IPSModule
             $this->setStatusIfChanged(self::STATUS_NO_SOCKET);
             return;
         }
-        $timeout = $this->ReadPropertyInteger('CommTimeout');
+        $timeout = (int) $this->ReadPropertyInteger('CommTimeout');
         if ($timeout > 0) {
             $last = (int) $this->GetValue('LastRequest');
             if (time() - $last > $timeout * 60) {
@@ -1061,13 +1242,13 @@ class ModbusTCPServer extends IPSModule
 
     private function buildServer(): MBSLVModbusServer
     {
-        $rows = json_decode($this->ReadPropertyString('Registers'), true);
+        $rows = json_decode((string) $this->ReadPropertyString('Registers'), true);
         if (!is_array($rows)) {
             $rows = [];
         }
         $normalized = array_map([self::class, 'normalizeGenericRow'], $rows);
 
-        if ($this->ReadPropertyBoolean('RPCEnabled')) {
+        if ((bool) $this->ReadPropertyBoolean('RPCEnabled')) {
             foreach ([
                 'RPC_SETPOINT'  => 5000,
                 'RPC_SCRATCH0'  => 5002,
@@ -1088,10 +1269,10 @@ class ModbusTCPServer extends IPSModule
 
         return new MBSLVModbusServer(
             $normalized,
-            $this->ReadPropertyBoolean('SwapWords'),
-            $this->ReadPropertyInteger('UnitID'),
-            $this->ReadPropertyBoolean('CheckUnitID'),
-            $this->ReadPropertyInteger('UnmappedRead'),
+            (bool) $this->ReadPropertyBoolean('SwapWords'),
+            (int) $this->ReadPropertyInteger('UnitID'),
+            (bool) $this->ReadPropertyBoolean('CheckUnitID'),
+            (int) $this->ReadPropertyInteger('UnmappedRead'),
             fn (array $row): float => $this->readRegisterValue($row),
             function (array $row, float $value): void {
                 $this->writeRegisterValue($row, $value);
@@ -1122,9 +1303,9 @@ class ModbusTCPServer extends IPSModule
                 case 'RPC_VALIDTIME':
                     return (float) $this->GetValue('ValidTime');
                 case 'RPC_WATCHDOG':
-                    return $this->ReadAttributeFloat('WatchdogValue');
+                    return (float) $this->ReadAttributeFloat('WatchdogValue');
                 default:
-                    $scratch = json_decode($this->ReadAttributeString('ScratchValues'), true);
+                    $scratch = json_decode((string) $this->ReadAttributeString('ScratchValues'), true);
                     return (float) ($scratch[$row['Ident']] ?? 0.0);
             }
         }
@@ -1138,7 +1319,7 @@ class ModbusTCPServer extends IPSModule
             return (float) $value * $row['Factor'];
         }
         if (MBSLVRegisterMemory::isMemoryCell($row)) {
-            $memory = MBSLVRegisterMemory::decode($this->ReadAttributeString('RegisterMemory'));
+            $memory = MBSLVRegisterMemory::decode((string) $this->ReadAttributeString('RegisterMemory'));
             return MBSLVRegisterMemory::get($memory, (int) ($row['Address'] ?? 0), (float) $row['Fixed']);
         }
         return $row['Fixed'];
@@ -1169,7 +1350,7 @@ class ModbusTCPServer extends IPSModule
     {
         // Speicherzelle (beschreibbar, ohne Variable): Wert merken, beim Lesen kommt er zurück
         if (MBSLVRegisterMemory::isMemoryCell($row)) {
-            $memory = MBSLVRegisterMemory::with(MBSLVRegisterMemory::decode($this->ReadAttributeString('RegisterMemory')), (int) $row['Address'], $value);
+            $memory = MBSLVRegisterMemory::with(MBSLVRegisterMemory::decode((string) $this->ReadAttributeString('RegisterMemory')), (int) $row['Address'], $value);
             $this->WriteAttributeString('RegisterMemory', MBSLVRegisterMemory::encode($memory));
             $this->SendDebug('Schreiben', sprintf('Register %d -> Speicherzelle = %s', $row['Address'], json_encode($value)), 0);
             return;
@@ -1241,7 +1422,7 @@ class ModbusTCPServer extends IPSModule
                 break;
 
             default: // RPC_SCRATCH0 / RPC_SCRATCH1 (Reserve-Register 5002-5005)
-                $scratch = json_decode($this->ReadAttributeString('ScratchValues'), true);
+                $scratch = json_decode((string) $this->ReadAttributeString('ScratchValues'), true);
                 if (!is_array($scratch)) {
                     $scratch = [];
                 }
@@ -1254,7 +1435,7 @@ class ModbusTCPServer extends IPSModule
     {
         $minutes = (float) $this->GetValue('ValidTime');
         if ($minutes < 1) {
-            $minutes = $this->ReadPropertyFloat('RPCDefaultValidTime');
+            $minutes = (float) $this->ReadPropertyFloat('RPCDefaultValidTime');
         }
         $until = $now + (int) round($minutes * 60);
         $this->SetValue('ValidUntil', $until);
@@ -1263,7 +1444,7 @@ class ModbusTCPServer extends IPSModule
 
     private function runForwardScript(string $action, float $setpoint): void
     {
-        $script = $this->ReadPropertyInteger('RPCForwardScript');
+        $script = (int) $this->ReadPropertyInteger('RPCForwardScript');
         if ($script < 10000 || !IPS_ScriptExists($script)) {
             return;
         }

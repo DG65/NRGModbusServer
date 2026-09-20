@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.0 (2026-09-21)
+
+- Formular nach der verbundweiten Konvention (SUITE.md "Einheitliche Formular-Optik"): "👋 Wozu dieses Modul?" ganz oben (einmalig wegklickbar), "🆕 Neu in Version X.Y" (aufgeklappt, pro Version wegklickbar), "📖 Dokumentation & Hilfe" (eingeklappt, mit Versionsangabe, vorher "📖 Doku"), die Verbindungszeile folgt darunter, ganz unten "🧡 Über dieses Modul" (Lizenz, Spenden-Link; nicht wegklickbar). Das Wegklicken von "Wozu"/"Neu" gilt für alle Instanzen dieses Moduls und wird von neu angelegten Instanzen übernommen (neue öffentliche Funktionen `MBSLV_AckPurposeIntro`, `MBSLV_AckNews`, `MBSLV_AdoptDismissState`, `MBSLV_GetDismissState`; neue Attribute `PurposeIntroGone`, `SeenNews`). Ein Forum-Hinweis fehlt noch, weil es keinen Modul-Thread gibt
+- Verbund-Regel 9c: `ReadProperty…()`/`ReadAttribute…()` werden nie mehr ungecastet an typisierte Funktionen oder `json_decode()` weitergereicht (während des Neuladens einer Instanz liefert das SDK `false`, mit strict_types ein TypeError)
+- Neu: `tests/module_test.php` lässt das echte module.php in einer Stub-Umgebung ohne IPS laufen (Formularaufbau, geteiltes Ausblenden, Speicherzellen inkl. Aufräumen), zusätzlich in der CI
+- README: Zeile "Teil des NRG-Stack"
+
 ## 1.10.1 (2026-09-21)
 
 - Store-Vorbereitung (Verbund-Checkliste, Neuinstallations-Simulation): Der Button "Instanzen anlegen" (Weitere Schnittstellen) fragt jetzt vor dem Anlegen ausdrücklich nach und nennt, dass Instanzen samt Server Socket angelegt und die Ports sofort geöffnet werden; die eigene Instanz bleibt dabei unverändert (nur deren gespeicherte Konfiguration wird kopiert, geschrieben wird ausschließlich auf die neuen Instanzen). Bezüge auf eine konkrete Anlage aus Code-Kommentaren, Changelog, Entwicklerhinweisen und Testnamen entfernt (neutral als "produktive Anlage" bzw. "Referenzanlage" formuliert). Keine Änderung am Verhalten der Register- oder Protokolllogik

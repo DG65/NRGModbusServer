@@ -1,7 +1,7 @@
 # NRG-Stack ModbusServer
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.10.1-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.11.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml)
@@ -9,6 +9,8 @@
 
 IP-Symcon-Bibliothek aus dem NRG-Stack, die IPS zum **Modbus-TCP-Server (Slave)** macht. Externe Modbus-Clients
 (Master) lesen und schreiben IPS-Variablen über eine frei konfigurierbare Registertabelle.
+
+**Teil des NRG-Stack** — dem Energie-Modulverbund von DG65.
 
 **Begriffe:** Die Modbus-Spezifikation spricht bei Modbus TCP von *Client* und *Server*, ältere
 Datenblätter, Geräte und Werkzeuge (z. B. ModRSsim2) sagen *Master* und *Slave*. Beides meint dasselbe:
@@ -250,8 +252,10 @@ modpoll -m tcp -t4:float -r 5000 -a 10 -0 -1 <IPS-IP> 30
 
 ## Tests
 
-Der Protokollkern (`libs/ModbusServer.php`) ist IPS-frei und mit der PHP-CLI testbar:
+Der Protokollkern (`libs/ModbusServer.php`) ist IPS-frei und mit der PHP-CLI testbar, ebenso das Modul selbst
+(Formularaufbau, Speicherzellen) über eine kleine Stub-Umgebung ohne IPS:
 
 ```
 php tests/codec_test.php
+php tests/module_test.php
 ```
