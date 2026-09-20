@@ -1,10 +1,10 @@
-# NRG-Stack ModbusSlave
+# NRG-Stack ModbusServer
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.3-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.9.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
-[![Check Style](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml)
+[![Check Style](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Me-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
 IP-Symcon-Bibliothek aus dem NRG-Stack, die IPS zum **Modbus-TCP-Server (Slave)** macht. Externe Modbus-Clients
@@ -24,7 +24,7 @@ ergänzt die Gegenrichtung. Typische Einsätze:
   um Systeme anzubinden, die einen bestimmten Modbus-Teilnehmer erwarten
 - Direktvermarktungs-Schnittstellen (siehe Vorlage unten)
 
-## Modul: ModbusTCPSlave
+## Modul: ModbusTCPServer
 
 ### Funktionsweise
 

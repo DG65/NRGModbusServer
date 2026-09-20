@@ -6,7 +6,7 @@ require_once __DIR__ . '/../libs/ModbusServer.php';
 require_once __DIR__ . '/../libs/TimeoutGuard.php';
 
 /**
- * ModbusTCPSlave (NRG-Stack: "NRGModbusTCPSlave" als Alias)
+ * ModbusTCPServer (NRG-Stack; früher "ModbusTCPSlave", als Alias weiter auffindbar)
  *
  * Macht IP-Symcon zum Modbus-TCP-Server (Slave): externe Modbus-Clients (Master) können
  * IPS-Variablen über eine frei konfigurierbare Registertabelle lesen und
@@ -23,7 +23,7 @@ require_once __DIR__ . '/../libs/TimeoutGuard.php';
  * Weitere Vorlagen (z. B. SunSpec-Ausschnitte) sind nach demselben Muster
  * ergänzbar.
  */
-class ModbusTCPSlave extends IPSModule
+class ModbusTCPServer extends IPSModule
 {
     // eigene Modul-GUID (siehe module.json)
     private const MODULE_GUID = '{3F519A7D-1ABC-417D-BC08-8CCEDE0BEEE8}';
@@ -551,7 +551,7 @@ class ModbusTCPSlave extends IPSModule
     /**
      * Formular-Button: legt für jeden angegebenen Port eine Kopie dieser
      * Instanz samt Server Socket an (z. B. "502-505" oder "502,503").
-     * Ports, auf denen bereits eine ModbusTCPSlave-Instanz lauscht (inklusive
+     * Ports, auf denen bereits eine ModbusTCPServer-Instanz lauscht (inklusive
      * dieser), werden übersprungen. Die neuen Instanzen sind vollständige
      * Kopien der GESPEICHERTEN Konfiguration dieser Instanz.
      * Rückgabe als Ergebnistext (✅/⚠️-Präfix), form.json ruft "echo MBSLV_..." auf.
@@ -574,7 +574,7 @@ class ModbusTCPSlave extends IPSModule
             return "⚠️ Keine gültigen Ports angegeben. Beispiele: '502-505' oder '502,503,1502'.";
         }
 
-        // bereits belegte Ports aller ModbusTCPSlave-Instanzen ermitteln
+        // bereits belegte Ports aller ModbusTCPServer-Instanzen ermitteln
         $usedPorts = [];
         foreach (IPS_GetInstanceListByModuleID(self::MODULE_GUID) as $instanceID) {
             $socket = IPS_GetInstance($instanceID)['ConnectionID'];
@@ -609,7 +609,7 @@ class ModbusTCPSlave extends IPSModule
                 $socket = IPS_CreateInstance(self::SERVER_SOCKET_MODULE);
                 IPS_ConnectInstance($instance, $socket);
             }
-            IPS_SetName($socket, 'Server Socket (Modbus TCP Slave Port ' . $port . ')');
+            IPS_SetName($socket, 'Server Socket (Modbus TCP Server Port ' . $port . ')');
             IPS_SetProperty($socket, 'Port', $port);
             IPS_SetProperty($socket, 'Open', true);
             @IPS_ApplyChanges($socket);

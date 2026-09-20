@@ -1,4 +1,4 @@
-# NRGModbusSlave — Hinweise für die Arbeit an diesem Repository
+# NRGModbusServer — Hinweise für die Arbeit an diesem Repository
 
 ## Rolle im NRG-Stack
 

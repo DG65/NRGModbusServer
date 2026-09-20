@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.0 (2026-09-20)
+
+- Umbenennung Slave -> Server, passend zur Begriffswahl der Modbus-Spezifikation (Client/Server): Bibliothek "NRG-Stack ModbusServer", Modul und PHP-Klasse "ModbusTCPServer" (Ordner ModbusTCPServer), Repo github.com/DG65/NRGModbusServer (die alte URL leitet GitHub weiter). Modul-GUID, Präfix MBSLV_, Idents, Eigenschaften und Variablen unverändert - bestehende Instanzen bleiben zugeordnet, Skripte mit MBSLV_-Aufrufen laufen weiter. Die bisherigen Namen "Modbus TCP Slave", "ModbusTCPSlave" und "NRGModbusTCPSlave" bleiben als Suchbegriffe erhalten. Neu angelegte Server Sockets heißen "Server Socket (Modbus TCP Server Port ...)"
+- Update-Hinweis: Wegen des geänderten Klassennamens nach dem Update einmal in der Modulverwaltung prüfen, dass die Instanzen wieder den Status des Sockets zeigen; bei Bedarf das Modul einzeln löschen und neu hinzufügen (GUID gleich, Instanzen bleiben)
+
 ## 1.8.3 (2026-09-20)
 
 - Doku: Begriffe vereinheitlicht - das Modul heißt in Beschreibung, README, Formular-Doku und Code-Kommentar jetzt "Modbus-TCP-Server (Slave)", die Gegenstelle "Client (Master)". Neuer Abschnitt "Begriffe" im README erklärt, dass beides dasselbe meint (Modbus-Spezifikation: Client/Server, ältere Datenblätter und Geräte: Master/Slave). Technischer Modulname, Klassenname, Präfix und Suchbegriffe unverändert

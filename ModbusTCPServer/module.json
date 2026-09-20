@@ -1,9 +1,9 @@
 {
   "id": "{3F519A7D-1ABC-417D-BC08-8CCEDE0BEEE8}",
-  "name": "ModbusTCPSlave",
+  "name": "ModbusTCPServer",
   "type": 3,
   "vendor": "",
-  "aliases": ["NRG-Stack Modbus TCP Slave", "NRGModbusTCPSlave", "Modbus TCP Slave", "Modbus TCP Server"],
+  "aliases": ["NRG-Stack Modbus TCP Server", "NRGModbusTCPServer", "Modbus TCP Server", "NRG-Stack Modbus TCP Slave", "NRGModbusTCPSlave", "ModbusTCPSlave", "Modbus TCP Slave"],
   "parentRequirements": ["{C8792760-65CF-4C53-B5C7-A30FCC84FEFE}"],
   "childRequirements": [],
   "implemented": ["{7A1272A4-CBDB-46EF-BFC6-DCF4A53D2FC7}"],
