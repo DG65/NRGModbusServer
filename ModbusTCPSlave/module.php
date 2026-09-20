@@ -8,7 +8,7 @@ require_once __DIR__ . '/../libs/TimeoutGuard.php';
 /**
  * ModbusTCPSlave (NRG-Stack: "NRGModbusTCPSlave" als Alias)
  *
- * Macht IP-Symcon zum Modbus-TCP-Slave (Server): externe Modbus-Master können
+ * Macht IP-Symcon zum Modbus-TCP-Server (Slave): externe Modbus-Clients (Master) können
  * IPS-Variablen über eine frei konfigurierbare Registertabelle lesen und
  * schreiben (FC 03/04/06/16, uint16 bis float64, umschaltbare Word-Reihenfolge).
  * Als I/O dient der IPS Server Socket (wird als Parent automatisch angelegt).

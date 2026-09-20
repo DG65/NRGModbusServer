@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.3 (2026-09-20)
+
+- Doku: Begriffe vereinheitlicht - das Modul heißt in Beschreibung, README, Formular-Doku und Code-Kommentar jetzt "Modbus-TCP-Server (Slave)", die Gegenstelle "Client (Master)". Neuer Abschnitt "Begriffe" im README erklärt, dass beides dasselbe meint (Modbus-Spezifikation: Client/Server, ältere Datenblätter und Geräte: Master/Slave). Technischer Modulname, Klassenname, Präfix und Suchbegriffe unverändert
+
 ## 1.8.2 (2026-09-13)
 
 - Fix (Verbund-Erkenntnis SUITE.md 9d nach Live-Vorfall Solarpark): ein bewusst geschlossener Server Socket (Open=aus, z. B. eine vorbereitete, noch nicht in Betrieb genommene Instanz) zeigt jetzt "Inaktiv" (IS_INACTIVE) statt des eigenen Fehlerstatus 201 - vermeidet, dass ein system-weiter Integrity-Check das als Störung zählt und daran hängende Watchdog-Skripte unnötig auslöst. Status 201 bleibt reserviert für den echten Fehlerfall (Socket soll laufen, tut es aber nicht, z. B. Port belegt). Verbindungszeile und Doku entsprechend angepasst

@@ -12,7 +12,7 @@
       "items": [
         {
           "type": "Label",
-          "caption": "Dieses Modul macht IP-Symcon zum Modbus-TCP-Slave (Server): externe Modbus-Master lesen und schreiben IPS-Variablen über die unten definierte Registertabelle. Der TCP-Port wird auf der übergeordneten Server-Socket-Instanz eingestellt (üblich 502). Mehrere gleichzeitige Verbindungen auf demselben Port sind möglich."
+          "caption": "Dieses Modul macht IP-Symcon zum Modbus-TCP-Server (Slave): externe Modbus-Clients (Master) lesen und schreiben IPS-Variablen über die unten definierte Registertabelle. Beide Schreibweisen bedeuten dasselbe - die Modbus-Spezifikation sagt Client/Server, ältere Datenblätter und Geräte oft noch Master/Slave. Der TCP-Port wird auf der übergeordneten Server-Socket-Instanz eingestellt (üblich 502). Mehrere gleichzeitige Verbindungen auf demselben Port sind möglich."
         },
         {
           "type": "Label",
@@ -24,7 +24,7 @@
         },
         {
           "type": "Label",
-          "caption": "Bestehenden Modbus-Slave ersetzen (z. B. Simulator wie ModRSsim2 oder eine SPS): 1) Registertabelle exakt wie beim alten Slave anlegen - Adressen, Datentypen, Word-Order und Unit-ID übernehmen, im Zweifel 'Anfragen an fremde Unit-IDs ablehnen' zunächst AUS lassen. 2) Dieselben IPS-Variablen wie bisher verknüpfen, damit vorhandene Skripte/Ereignisse unverändert weiterlaufen; gehören die Variablen einer anderen Instanz (typisch: ein bisheriges ModBus-Device, das den alten Slave bedient hat), Schreibmodus 'Ja - direkt' wählen. 3) Alten Slave auf diesem Port stoppen, dann den Server Socket dieser Instanz auf demselben Port öffnen. 4) Kontrolle über die Verbindungszeile oben ('zuletzt ... Uhr' muss im Polltakt des Masters weiterlaufen) und im Debug-Fenster der Instanz. Rückweg jederzeit: Server Socket schließen, alten Slave starten."
+          "caption": "Bestehenden Modbus-Server (Slave) ersetzen (z. B. Simulator wie ModRSsim2 oder eine SPS): 1) Registertabelle exakt wie beim alten Server anlegen - Adressen, Datentypen, Word-Order und Unit-ID übernehmen, im Zweifel 'Anfragen an fremde Unit-IDs ablehnen' zunächst AUS lassen. 2) Dieselben IPS-Variablen wie bisher verknüpfen, damit vorhandene Skripte/Ereignisse unverändert weiterlaufen; gehören die Variablen einer anderen Instanz (typisch: ein bisheriges ModBus-Device, das den alten Server bedient hat), Schreibmodus 'Ja - direkt' wählen. 3) Alten Server auf diesem Port stoppen, dann den Server Socket dieser Instanz auf demselben Port öffnen. 4) Kontrolle über die Verbindungszeile oben ('zuletzt ... Uhr' muss im Polltakt des Clients weiterlaufen) und im Debug-Fenster der Instanz. Rückweg jederzeit: Server Socket schließen, alten Server starten."
         },
         {
           "type": "Label",

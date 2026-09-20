@@ -2,8 +2,8 @@
 
 ## Rolle im NRG-Stack
 
-**Export-Endpunkt**: macht IPS zum Modbus-TCP-Slave (Server), damit externe
-Master (EMS-/SCADA-/Leitsysteme, Direktvermarkter) IPS-Variablen lesen und
+**Export-Endpunkt**: macht IPS zum Modbus-TCP-Server (Slave), damit externe
+Clients/Master (EMS-/SCADA-/Leitsysteme, Direktvermarkter) IPS-Variablen lesen und
 schreiben können. Kein `*_GetFunctions`-Vertrag — die Kompatibilitätsgröße
 ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
 **Direktvermarktungs-Andockpunkt** des Verbunds; künftig Quelle für
@@ -21,7 +21,7 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
 - Schreiben je Registerzeile (Spalte "Schreiben"): 0 = nur lesen, 1 =
   `RequestAction` wenn die Zielvariable eine Aktion hat (sonst `SetValue`),
   2 = immer `SetValue` (Aktion bewusst umgehen - nötig für Variablen fremder
-  Instanzen, z. B. ModBus-Device-Register beim Ersatz eines alten Slaves).
+  Instanzen, z. B. ModBus-Device-Register beim Ersatz eines alten Servers/Slaves).
 - Optionale Timeout-Absicherung (Property `RegisterTimeouts`, unabhängig vom
   RPC-Profil): Register X ohne Schreibzugriff seit Dauer Y (fest oder aus
   einem Quell-Register gelesen) -> Rückfallwert. Reiner Rechenkern in

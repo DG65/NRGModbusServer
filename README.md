@@ -1,16 +1,21 @@
 # NRG-Stack ModbusSlave
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.2-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.3-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusSlave/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Me-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
-IP-Symcon-Bibliothek aus dem NRG-Stack, die IPS zum **Modbus-TCP-Slave (Server)** macht. Externe Modbus-Master
-lesen und schreiben IPS-Variablen über eine frei konfigurierbare Registertabelle.
+IP-Symcon-Bibliothek aus dem NRG-Stack, die IPS zum **Modbus-TCP-Server (Slave)** macht. Externe Modbus-Clients
+(Master) lesen und schreiben IPS-Variablen über eine frei konfigurierbare Registertabelle.
 
-IP-Symcon selbst bietet von Haus aus nur Modbus-**Master**-Funktionalität – dieses Modul
+**Begriffe:** Die Modbus-Spezifikation spricht bei Modbus TCP von *Client* und *Server*, ältere
+Datenblätter, Geräte und Werkzeuge (z. B. ModRSsim2) sagen *Master* und *Slave*. Beides meint dasselbe:
+Dieses Modul ist der **Server (Slave)**, die abfragende Gegenstelle der **Client (Master)**. Im Text und
+in der Oberfläche kommen beide Schreibweisen vor, damit man sie mit der Gerätedokumentation abgleichen kann.
+
+IP-Symcon selbst bietet von Haus aus nur Modbus-**Client**-Funktionalität (Master) – dieses Modul
 ergänzt die Gegenrichtung. Typische Einsätze:
 
 - IPS-Messwerte für ein übergeordnetes EMS, SCADA- oder Leitsystem bereitstellen
@@ -74,23 +79,23 @@ Listenfeld ist und `UpdateFormField` darauf die Konsole zu "Änderungen überneh
 obwohl nichts geändert wurde. Lehnt das Modul einen Schreibversuch ab (z. B. weil ein Register
 nicht beschreibbar ist), steht der abgelehnte Wert im Debug-Log.
 
-### Bestehenden Modbus-Slave ersetzen (Simulator, SPS)
+### Bestehenden Modbus-Server (Slave) ersetzen (Simulator, SPS)
 
-Soll dieses Modul einen vorhandenen Slave ablösen (z. B. einen Simulator wie ModRSsim2, über den
+Soll dieses Modul einen vorhandenen Modbus-Server ablösen (z. B. einen Simulator wie ModRSsim2, über den
 ein Direktvermarkter oder Leitsystem bislang angebunden war):
 
 1. **Registertabelle 1:1 nachbilden** – Adressen, Datentypen, Word-Order und Unit-ID vom alten
-   Slave übernehmen. Ist die Unit-ID des Masters nicht sicher bekannt, „Anfragen an fremde
+   Server übernehmen. Ist die Unit-ID des Clients nicht sicher bekannt, „Anfragen an fremde
    Unit-IDs ablehnen" zunächst ausschalten (das Debug-Fenster zeigt die tatsächlich verwendete).
 2. **Dieselben IPS-Variablen verknüpfen** wie bisher, damit vorhandene Skripte und Ereignisse
    unverändert weiterlaufen. Gehören die Variablen einer anderen Instanz (typisch: einem
-   ModBus-Device, das bisher den alten Slave bedient hat), Schreibmodus **„Ja – direkt"** wählen.
-3. **Umschalten:** alten Slave auf diesem Port stoppen, dann den Server Socket dieser Instanz
-   auf demselben Port öffnen. Läuft IPS auf einem anderen Rechner als der alte Slave, muss der
-   Master (bzw. dessen VPN/NAT) auf die IPS-Adresse umgestellt werden.
+   ModBus-Device, das bisher den alten Server bedient hat), Schreibmodus **„Ja – direkt"** wählen.
+3. **Umschalten:** alten Server auf diesem Port stoppen, dann den Server Socket dieser Instanz
+   auf demselben Port öffnen. Läuft IPS auf einem anderen Rechner als der alte Server, muss der
+   Client (bzw. dessen VPN/NAT) auf die IPS-Adresse umgestellt werden.
 4. **Kontrolle:** Verbindungszeile oben im Formular („zuletzt … Uhr" läuft im Polltakt des
-   Masters weiter) und Debug-Fenster der Instanz. Rückweg jederzeit: Server Socket schließen,
-   alten Slave starten.
+   Clients weiter) und Debug-Fenster der Instanz. Rückweg jederzeit: Server Socket schließen,
+   alten Server starten.
 
 **Unbelegte Register:** Fragt ein Master eine Adresse ohne Tabellenzeile an, liefert das Modul
 wahlweise 0 (tolerant, Standard – sinnvoll, wenn Master ganze Blöcke lesen) oder eine
@@ -153,7 +158,7 @@ den Sollwert in Register 5000 und die Gültigkeitsdauer in Register 5006 (in Min
 Zeitüberwachungs-Zeile mit Ziel-Adresse 5000, Quell-Register 5006, Einheit Minuten und
 Rückfallwert 100 (= keine Abregelung) reproduziert damit das blue'Log-eigene Sicherheitsverhalten
 – auch ganz ohne die RPC-Vorlage, also z. B. wenn Register 5000 nach der Migration eines
-bestehenden Slaves auf eine bereits vorhandene, wiederverwendete Variable zeigt (Schreibmodus
+bestehenden Servers auf eine bereits vorhandene, wiederverwendete Variable zeigt (Schreibmodus
 „Ja - direkt", siehe oben).
 
 Die Zeit läuft erst ab dem **ersten echten Schreibzugriff** – eine nie beschriebene Zeile fällt
@@ -202,7 +207,8 @@ und den Wert über eine IPS-ModBus-Master-Instanz in Register 5000 des blue'Log 
 ### Einrichtung
 
 1. Modul über die Modulverwaltung installieren (GitHub-URL)
-2. Instanz „Modbus TCP Slave" anlegen – der Server Socket wird automatisch erstellt
+2. Instanz „Modbus TCP Server" anlegen (unter dem alten Namen „Modbus TCP Slave" ebenfalls
+   auffindbar) – der Server Socket wird automatisch erstellt
 3. Port am Server Socket einstellen (z. B. 502) und Socket aktivieren
 4. Registertabelle füllen (manuell oder per Vorlage), Variablen zuordnen, übernehmen
 
