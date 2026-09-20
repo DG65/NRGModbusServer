@@ -61,11 +61,18 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   es einen Modul-Thread gibt.
 - Jeder `ReadProperty…()`/`ReadAttribute…()`-Aufruf trägt einen Typ-Cast (SUITE.md 9c).
 
+## Keine sichtbaren Hilfsordner im Wurzelverzeichnis
+
+Der Symcon Module Store behandelt jeden sichtbaren Top-Level-Ordner als Modul und verlangt eine
+`module.json` (real passiert bei Tibber). Deshalb heißt der Testordner `.tests` mit führendem Punkt.
+`libs` bleibt (offizieller Ordner der Symcon-Modulstruktur). Genau EIN Alias je Modul
+(`"NRG-Stack Modbus TCP Server"`), Verbundregel seit 20.09.2026.
+
 ## Tests
 
 Der Protokollkern `libs/ModbusServer.php` ist IPS-frei und CLI-testbar:
-`php tests/codec_test.php`. Bei jeder Änderung am Codec laufen lassen. Das Modul selbst
-läuft mit Stub-Umgebung in `php tests/module_test.php` (Formular, Speicherzellen).
+`php .tests/codec_test.php`. Bei jeder Änderung am Codec laufen lassen. Das Modul selbst
+läuft mit Stub-Umgebung in `php .tests/module_test.php` (Formular, Speicherzellen).
 Manueller Gegentest: `modpoll` (Beispiele im README).
 
 ## Branch-Modell

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Modul-Test mit Stub-Umgebung (ohne IPS): php tests/module_test.php
+ * Modul-Test mit Stub-Umgebung (ohne IPS): php .tests/module_test.php
  *
  * Ersetzt IPSModule und die benötigten IPS_*-Funktionen durch kleine Attrappen
  * und lässt das echte module.php laufen: Formularaufbau (Reihenfolge der Panels

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.11.1 (2026-09-21)
+
+- Verbund-Konventionen nachgezogen (Abgleich mit EMS): genau EIN Alias je Modul ("NRG-Stack Modbus TCP Server") statt sieben - jeder Alias erscheint in "Instanz hinzufügen" als eigener Eintrag und wirkte wie ein Duplikat. Die Suchbegriffe "Slave" entfallen damit (Preis der Regel); GUID, Klassenname und bestehende Instanzen sind nicht betroffen. Testordner von `tests` nach `.tests` (der Store-Scanner behandelt jeden sichtbaren Top-Level-Ordner als Modul und verlangt eine module.json). library.json: Kompatibilität 9.0 (auf IP-Symcon 9.0 getestet, wie bei allen Verbund-Modulen) und ein echtes Datum statt 0
+
 ## 1.11.0 (2026-09-21)
 
 - Formular nach der verbundweiten Konvention (SUITE.md "Einheitliche Formular-Optik"): "👋 Wozu dieses Modul?" ganz oben (einmalig wegklickbar), "🆕 Neu in Version X.Y" (aufgeklappt, pro Version wegklickbar), "📖 Dokumentation & Hilfe" (eingeklappt, mit Versionsangabe, vorher "📖 Doku"), die Verbindungszeile folgt darunter, ganz unten "🧡 Über dieses Modul" (Lizenz, Spenden-Link; nicht wegklickbar). Das Wegklicken von "Wozu"/"Neu" gilt für alle Instanzen dieses Moduls und wird von neu angelegten Instanzen übernommen (neue öffentliche Funktionen `MBSLV_AckPurposeIntro`, `MBSLV_AckNews`, `MBSLV_AdoptDismissState`, `MBSLV_GetDismissState`; neue Attribute `PurposeIntroGone`, `SeenNews`). Ein Forum-Hinweis fehlt noch, weil es keinen Modul-Thread gibt

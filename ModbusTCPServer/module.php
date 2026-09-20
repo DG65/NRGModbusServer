@@ -219,7 +219,7 @@ class ModbusTCPServer extends IPSModule
             'caption' => '🆕  Neu in Version ' . self::NEWS_VERSION,
             'items' => [
                 ['type' => 'Label', 'caption' => '• 🆕 Speicherzellen: Eine beschreibbare Registerzeile ohne Variable merkt sich den vom Client geschriebenen Wert und liefert ihn beim Lesen zurück - wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert. Praktisch für Sollwerte, die ein anderes Gerät, etwa ein ModBus-Device in derselben Installation, von diesem Server zurückliest; dessen Variablen sind schreibgeschützt und lassen sich nicht direkt beschreiben.'],
-                ['type' => 'Label', 'caption' => '• 🔧 Neuer Name: „Modbus-TCP-Server" statt „Slave", passend zur Modbus-Spezifikation (Client/Server). Die alten Namen bleiben als Suchbegriffe erhalten, bestehende Instanzen bleiben unverändert zugeordnet.'],
+                ['type' => 'Label', 'caption' => '• 🔧 Neuer Name: „Modbus-TCP-Server" statt „Slave", passend zur Modbus-Spezifikation (Client/Server). Bestehende Instanzen bleiben unverändert zugeordnet, nur beim Anlegen einer neuen Instanz heißt der Eintrag „NRG-Stack Modbus TCP Server".'],
                 ['type' => 'Label', 'caption' => '• 🔧 „Instanzen anlegen" (weitere Schnittstellen) fragt jetzt vorher nach und nennt, dass die Ports sofort geöffnet werden.'],
                 ['type' => 'Label', 'caption' => '• 🔗 Bei mehreren Instanzen: „Wozu dieses Modul?" und „Was ist neu?" müssen nur einmal weggeklickt werden - ein Klick gilt für alle Instanzen dieses Moduls.'],
                 ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckNews($id);'],

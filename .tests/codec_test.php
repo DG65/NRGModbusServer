@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * CLI-Test für den Modbus-Server-Kern (ohne IPS): php tests/codec_test.php
+ * CLI-Test für den Modbus-Server-Kern (ohne IPS): php .tests/codec_test.php
  * Simuliert Anfragen eines Direktvermarkters gegen die blue'Log-RPC-Registerbelegung.
  */
 

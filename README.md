@@ -1,8 +1,8 @@
 # NRG-Stack ModbusServer
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.11.0-blue)
-![Symcon Version](https://img.shields.io/badge/Symcon_Version-7.0%2B-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.11.1-blue)
+![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Me-blue?logo=paypal)](https://paypal.me/DietmarGureth)
@@ -228,8 +228,7 @@ und den Wert über eine IPS-ModBus-Master-Instanz in Register 5000 des blue'Log 
 ### Einrichtung
 
 1. Modul über die Modulverwaltung installieren (GitHub-URL)
-2. Instanz „Modbus TCP Server" anlegen (unter dem alten Namen „Modbus TCP Slave" ebenfalls
-   auffindbar) – der Server Socket wird automatisch erstellt
+2. Instanz „NRG-Stack Modbus TCP Server" anlegen – der Server Socket wird automatisch erstellt
 3. Port am Server Socket einstellen (z. B. 502) und Socket aktivieren
 4. Registertabelle füllen (manuell oder per Vorlage), Variablen zuordnen, übernehmen
 
@@ -256,6 +255,6 @@ Der Protokollkern (`libs/ModbusServer.php`) ist IPS-frei und mit der PHP-CLI tes
 (Formularaufbau, Speicherzellen) über eine kleine Stub-Umgebung ohne IPS:
 
 ```
-php tests/codec_test.php
-php tests/module_test.php
+php .tests/codec_test.php
+php .tests/module_test.php
 ```
