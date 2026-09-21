@@ -64,7 +64,7 @@ t('Doku-Panel nennt Version', str_contains($form['elements'][2]['items'][0]['cap
 $last = end($form['elements']);
 $forum = $form['elements'][count($form['elements']) - 2];
 t('Letztes Panel = Über dieses Modul, eingeklappt, ohne name', str_contains($last['caption'], 'Über dieses Modul') && $last['expanded'] === false && !isset($last['name']));
-t('Lizenz-Link-Buttons: onClick echo + link=true', $last['items'][2]['link'] === true && str_contains($last['items'][2]['onClick'], 'echo') && str_contains($last['items'][2]['onClick'], 'NRGModbusServer'));
+t('Lizenz-Link-Buttons: onClick echo + link=true, Ziel LICENSE auf beta', $last['items'][2]['link'] === true && str_contains($last['items'][2]['onClick'], 'echo') && str_contains($last['items'][2]['onClick'], 'NRGModbusServer/blob/beta/LICENSE'));
 t('Vorletztes Panel = Feedback (Forum-Hinweis), aufgeklappt', ($forum['name'] ?? '') === 'ForumHintPanel' && $forum['expanded'] === true && str_contains($forum['caption'], 'Feedback'));
 t('Feedback-Link-Button: onClick echo + link=true, Ziel Forum-Thread', $forum['items'][1]['link'] === true && str_contains($forum['items'][1]['onClick'], "echo 'https://community.symcon.de/t/144448'"));
 t('Statuszeile PortInfo weiterhin vorhanden', in_array('PortInfo', $caps, true));

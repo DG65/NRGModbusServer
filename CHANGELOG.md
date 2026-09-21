@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.2 (2026-09-21)
+
+- Der Lizenz-Link im Formular ("Über dieses Modul") zeigt auf den Branch `beta` statt `main`: `beta` ist der Branch, den der Store-Beta-Kanal ausliefert und der die aktuelle PolyForm-Lizenz trägt; `main` wird erst mit dem späteren Wechsel nach `main` wieder gepflegt
+
 ## 1.12.1 (2026-09-21)
 
 - Der Feedback-Hinweis zeigt jetzt auf den Modul-Thread im Symcon-Forum (Kurzadresse mit Themen-ID, bleibt auch bei einer Titeländerung gültig) statt auf die GitHub-Issues; Titel "💬 Feedback im Symcon-Forum", Button "Zum Forums-Thread"

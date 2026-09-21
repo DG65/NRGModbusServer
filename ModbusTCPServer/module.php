@@ -34,7 +34,7 @@ class ModbusTCPServer extends IPSModule
     // Formular-Konvention (SUITE.md "Einheitliche Formular-Optik"): News-Panel je Version
     // einmalig bestätigbar, Lizenz-/Spendenhinweis fest verdrahtet
     private const NEWS_VERSION = '1.12';
-    private const LICENSE_URL = 'https://github.com/DG65/NRGModbusServer/blob/main/LICENSE';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGModbusServer/blob/beta/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
     // Modul-Thread im Symcon-Forum (Kurzform mit Themen-ID, Discourse leitet auf die aktuelle Adresse um -
     // bleibt gültig, auch wenn der Titel des Threads geändert wird)
