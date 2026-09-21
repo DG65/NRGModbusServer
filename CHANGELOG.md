@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.0 (2026-09-21)
+
+- Feedback-Hinweis nach der Verbund-Konvention (SUITE.md "Einheitliche Formular-Optik", Punkt 4, Pflicht für jedes Modul): Panel "💬 Feedback" nach den Fachpanels und vor "Über dieses Modul", einmalig wegklickbar (Ausblenden gilt für alle Instanzen, neue Instanzen übernehmen den Stand; neue öffentliche Funktion `MBSLV_AckForumHint`, neues Attribut `ForumHintGone`). Weil es noch keinen Thread im Symcon-Forum gibt, zeigt der Link-Button auf die GitHub-Issues des Repos (wie bei OCPPHub vor seinem Thread); sobald es einen Thread gibt, wird die Adresse umgestellt. "Neu in Version"-Panel entsprechend auf 1.12 mit eigenem Eintrag
+
 ## 1.11.2 (2026-09-21)
 
 - Fix (Live-Fund, Konfigurationsformular öffnete nicht): Die Versionsangabe im Doku-Panel (seit 1.11.0) las die Bibliotheks-ID aus einem Feld, das `IPS_GetInstance()` nicht liefert; die dabei entstehenden PHP-Warnungen standen vor dem Formular-JSON und machten das Formular unlesbar ("Konnte Konfigurationsform nicht laden"). Die ID wird jetzt über `IPS_GetModule()` geholt und abgesichert. Der Stub-Test bildet das Symcon-Verhalten nun genauer nach und bricht bei jeder PHP-Warnung ab

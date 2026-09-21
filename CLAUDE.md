@@ -57,8 +57,8 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   anheben), Doku (`DocPanel` in form.json, Version aus der Bibliothek), Fachpanels,
   Lizenz (`LicenseHint`, ganz unten, nicht wegklickbar). Ausblenden wird über alle
   Instanzen geteilt (`PropagateDismiss`/`AdoptDismissState`). Link-Buttons immer
-  `'onClick' => "echo '<URL>';", 'link' => true`. Ein Forum-Hinweis kommt erst, wenn
-  es einen Modul-Thread gibt.
+  `'onClick' => "echo '<URL>';", 'link' => true`. Der Feedback-Hinweis (`ForumHint`, Pflicht)
+  zeigt auf GitHub-Issues, solange es keinen Forum-Thread gibt - `FEEDBACK_URL` dann umstellen.
 - Jeder `ReadProperty…()`/`ReadAttribute…()`-Aufruf trägt einen Typ-Cast (SUITE.md 9c).
 
 ## Keine sichtbaren Hilfsordner im Wurzelverzeichnis

@@ -33,9 +33,12 @@ class ModbusTCPServer extends IPSModule
     // Datenpaket "Erweitert (Socket)": Empfang vom Server Socket
     // Formular-Konvention (SUITE.md "Einheitliche Formular-Optik"): News-Panel je Version
     // einmalig bestätigbar, Lizenz-/Spendenhinweis fest verdrahtet
-    private const NEWS_VERSION = '1.11';
+    private const NEWS_VERSION = '1.12';
     private const LICENSE_URL = 'https://github.com/DG65/NRGModbusServer/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
+    // Rückmeldungen: Symcon-Forum-Thread existiert noch nicht, bis dahin GitHub-Issues (wie OCPPHub vor seinem Thread);
+    // sobald es einen Thread gibt, hier umstellen
+    private const FEEDBACK_URL = 'https://github.com/DG65/NRGModbusServer/issues';
 
     private const RX_DATA_ID = '{7A1272A4-CBDB-46EF-BFC6-DCF4A53D2FC7}';
     // Datenpaket "Erweitert (Socket)": gerichtetes Senden an einen Client
@@ -99,6 +102,7 @@ class ModbusTCPServer extends IPSModule
         $this->RegisterAttributeString('RegisterMemory', '{}');
         // Formular-Hinweise (Ausblenden wird über alle Instanzen dieses Moduls geteilt)
         $this->RegisterAttributeBoolean('PurposeIntroGone', false);
+        $this->RegisterAttributeBoolean('ForumHintGone', false);
         $this->RegisterAttributeString('SeenNews', '');
         // Letzte Zugriffszeit je Registeradresse (r=gelesen/abgefragt,
         // w=geschrieben/empfangen) - Sichtbarkeit "was geht wirklich" in der
@@ -221,7 +225,8 @@ class ModbusTCPServer extends IPSModule
                 ['type' => 'Label', 'caption' => '• 🆕 Speicherzellen: Eine beschreibbare Registerzeile ohne Variable merkt sich den vom Client geschriebenen Wert und liefert ihn beim Lesen zurück - wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert. Praktisch für Sollwerte, die ein anderes Gerät, etwa ein ModBus-Device in derselben Installation, von diesem Server zurückliest; dessen Variablen sind schreibgeschützt und lassen sich nicht direkt beschreiben.'],
                 ['type' => 'Label', 'caption' => '• 🔧 Neuer Name: „Modbus-TCP-Server" statt „Slave", passend zur Modbus-Spezifikation (Client/Server). Bestehende Instanzen bleiben unverändert zugeordnet, nur beim Anlegen einer neuen Instanz heißt der Eintrag „NRG-Stack Modbus TCP Server".'],
                 ['type' => 'Label', 'caption' => '• 🔧 „Instanzen anlegen" (weitere Schnittstellen) fragt jetzt vorher nach und nennt, dass die Ports sofort geöffnet werden.'],
-                ['type' => 'Label', 'caption' => '• 🔗 Bei mehreren Instanzen: „Wozu dieses Modul?" und „Was ist neu?" müssen nur einmal weggeklickt werden - ein Klick gilt für alle Instanzen dieses Moduls.'],
+                ['type' => 'Label', 'caption' => '• 💬 Neuer Feedback-Hinweis unten im Formular: Rückmeldungen, Fragen und Fehlermeldungen sind willkommen - solange es keinen Forum-Thread gibt, als Eintrag auf GitHub.'],
+                ['type' => 'Label', 'caption' => '• 🔗 Bei mehreren Instanzen: „Wozu dieses Modul?", „Was ist neu?" und der Feedback-Hinweis müssen nur einmal weggeklickt werden - ein Klick gilt für alle Instanzen dieses Moduls.'],
                 ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckNews($id);'],
             ],
         ];
@@ -232,6 +237,30 @@ class ModbusTCPServer extends IPSModule
         $this->WriteAttributeString('SeenNews', self::NEWS_VERSION);
         $this->UpdateFormField('NewsPanel', 'visible', false);
         $this->PropagateDismiss('News', self::NEWS_VERSION);
+    }
+
+    /** Feedback-/Forum-Hinweis - nach den Fachpanels, einmalig wegklickbar (Punkt 4; Pflicht laut Verbund-Konvention) */
+    private function ForumHint(): ?array
+    {
+        if ((bool) $this->ReadAttributeBoolean('ForumHintGone')) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
+            'caption' => '💬  Feedback',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Rückmeldungen, Fragen und Fehlermeldungen zu diesem Modul sind ausdrücklich willkommen. Einen Thread im Symcon-Forum gibt es noch nicht - bis dahin am besten als Eintrag (Issue) auf GitHub.'],
+                ['type' => 'Button', 'caption' => 'Zu GitHub (Rückmeldung geben)', 'onClick' => "echo '" . self::FEEDBACK_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckForumHint($id);'],
+            ],
+        ];
+    }
+
+    public function AckForumHint(): void
+    {
+        $this->WriteAttributeBoolean('ForumHintGone', true);
+        $this->UpdateFormField('ForumHintPanel', 'visible', false);
+        $this->PropagateDismiss('ForumHint');
     }
 
     /**
@@ -263,6 +292,10 @@ class ModbusTCPServer extends IPSModule
                 $this->WriteAttributeBoolean('PurposeIntroGone', true);
                 $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
                 break;
+            case 'ForumHint':
+                $this->WriteAttributeBoolean('ForumHintGone', true);
+                $this->UpdateFormField('ForumHintPanel', 'visible', false);
+                break;
             case 'News':
                 $this->WriteAttributeString('SeenNews', $value);
                 $this->UpdateFormField('NewsPanel', 'visible', false);
@@ -275,6 +308,7 @@ class ModbusTCPServer extends IPSModule
     {
         return [
             'purposeIntroGone' => (bool) $this->ReadAttributeBoolean('PurposeIntroGone'),
+            'forumHintGone'    => (bool) $this->ReadAttributeBoolean('ForumHintGone'),
             'seenNews'         => (string) $this->ReadAttributeString('SeenNews')
         ];
     }
@@ -286,7 +320,7 @@ class ModbusTCPServer extends IPSModule
      */
     private function AdoptDismissFromSibling(): void
     {
-        if ((bool) $this->ReadAttributeBoolean('PurposeIntroGone') && (string) $this->ReadAttributeString('SeenNews') === self::NEWS_VERSION) {
+        if ((bool) $this->ReadAttributeBoolean('PurposeIntroGone') && (bool) $this->ReadAttributeBoolean('ForumHintGone') && (string) $this->ReadAttributeString('SeenNews') === self::NEWS_VERSION) {
             return;
         }
         foreach (IPS_GetInstanceListByModuleID(self::MODULE_GUID) as $sibling) {
@@ -303,6 +337,9 @@ class ModbusTCPServer extends IPSModule
             }
             if (!(bool) $this->ReadAttributeBoolean('PurposeIntroGone') && !empty($state['purposeIntroGone'])) {
                 $this->WriteAttributeBoolean('PurposeIntroGone', true);
+            }
+            if (!(bool) $this->ReadAttributeBoolean('ForumHintGone') && !empty($state['forumHintGone'])) {
+                $this->WriteAttributeBoolean('ForumHintGone', true);
             }
             if ((string) $this->ReadAttributeString('SeenNews') !== self::NEWS_VERSION && ($state['seenNews'] ?? '') === self::NEWS_VERSION) {
                 $this->WriteAttributeString('SeenNews', self::NEWS_VERSION);
@@ -480,7 +517,7 @@ class ModbusTCPServer extends IPSModule
         $form['elements'] = array_values(array_filter(array_merge(
             [$this->PurposeIntro(), $this->NewsBanner()],
             $form['elements'],
-            [$this->LicenseHint()]
+            [$this->ForumHint(), $this->LicenseHint()]
         )));
         return json_encode($form);
     }

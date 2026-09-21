@@ -21,7 +21,7 @@ $GLOBALS['props'] = ['RPCEnabled'=>false,'Registers'=>json_encode([
   ['Name'=>'a','Area'=>0,'Address'=>5000,'DataType'=>'float32','VariableID'=>0,'Factor'=>1,'Fixed'=>100,'Writable'=>2],
   ['Name'=>'b','Area'=>0,'Address'=>100,'DataType'=>'int32','VariableID'=>0,'Factor'=>1,'Fixed'=>0,'Writable'=>0]]),
   'RegisterTimeouts'=>'[]','UnitID'=>1,'CheckUnitID'=>true,'SwapWords'=>false,'UnmappedRead'=>0,'CommTimeout'=>0];
-$GLOBALS['attrs'] = ['PurposeIntroGone'=>false,'SeenNews'=>'','RegisterActivity'=>'{}','TimeoutApplied'=>'{}','RegisterMemory'=>'{"5000":42.5}','ScratchValues'=>'{}'];
+$GLOBALS['attrs'] = ['PurposeIntroGone'=>false,'ForumHintGone'=>false,'SeenNews'=>'','RegisterActivity'=>'{}','TimeoutApplied'=>'{}','RegisterMemory'=>'{"5000":42.5}','ScratchValues'=>'{}'];
 $GLOBALS['updates'] = [];
 class IPSModule {
   public $InstanceID = 12345;
@@ -46,7 +46,7 @@ function IPS_GetLibrary($id){ if ($id !== '{1C9B79B6-35D6-4381-907C-ADAE1FEAF307
 function IPS_GetInstanceListByModuleID($g){ return [12345, 22222]; }
 function IPS_VariableExists($i){ return false; } function IPS_GetName($i){ return 'Test'; } function IPS_GetObject($i){ return ['ParentID'=>0]; }
 function IPS_GetProperty($i,$n){ return 0; } function IPS_VariableProfileExists($n){ return true; }
-$sibState = ['purposeIntroGone'=>true,'seenNews'=>'1.11']; $GLOBALS['adopted']=[];
+$sibState = ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.12']; $GLOBALS['adopted']=[];
 function MBSLV_AdoptDismissState($id,$w,$v){ $GLOBALS['adopted'][]=[$id,$w,$v]; }
 function MBSLV_GetDismissState($id){ global $sibState; return $sibState; }
 require __DIR__ . '/../ModbusTCPServer/module.php';
@@ -58,12 +58,15 @@ t('Formular ist gültiges JSON', is_array($form) && isset($form['elements']));
 $caps = array_map(fn($e)=>($e['name'] ?? '') ?: ($e['caption'] ?? $e['type']), $form['elements']);
 echo '   Reihenfolge: ' . implode(' | ', array_map(fn($c)=>mb_substr($c,0,28), $caps)) . "\n";
 t('1. Panel = Zweck', ($form['elements'][0]['name'] ?? '') === 'PurposeIntroPanel');
-t('2. Panel = Neu in Version', ($form['elements'][1]['name'] ?? '') === 'NewsPanel' && str_contains($form['elements'][1]['caption'], '1.11'));
+t('2. Panel = Neu in Version', ($form['elements'][1]['name'] ?? '') === 'NewsPanel' && str_contains($form['elements'][1]['caption'], '1.12'));
 t('3. Panel = Dokumentation & Hilfe, eingeklappt', ($form['elements'][2]['name'] ?? '') === 'DocPanel' && $form['elements'][2]['expanded'] === false);
 t('Doku-Panel nennt Version', str_contains($form['elements'][2]['items'][0]['caption'], '1.11.0'));
 $last = end($form['elements']);
+$forum = $form['elements'][count($form['elements']) - 2];
 t('Letztes Panel = Über dieses Modul, eingeklappt, ohne name', str_contains($last['caption'], 'Über dieses Modul') && $last['expanded'] === false && !isset($last['name']));
 t('Lizenz-Link-Buttons: onClick echo + link=true', $last['items'][2]['link'] === true && str_contains($last['items'][2]['onClick'], 'echo') && str_contains($last['items'][2]['onClick'], 'NRGModbusServer'));
+t('Vorletztes Panel = Feedback (Forum-Hinweis), aufgeklappt', ($forum['name'] ?? '') === 'ForumHintPanel' && $forum['expanded'] === true && str_contains($forum['caption'], 'Feedback'));
+t('Feedback-Link-Button: onClick echo + link=true, Ziel GitHub-Issues', $forum['items'][1]['link'] === true && str_contains($forum['items'][1]['onClick'], "echo 'https://github.com/DG65/NRGModbusServer/issues'"));
 t('Statuszeile PortInfo weiterhin vorhanden', in_array('PortInfo', $caps, true));
 $reg = null; foreach ($form['elements'] as $e) if (($e['name'] ?? '')==='Registers') $reg=$e;
 t('Speicherzelle zeigt gemerkten Wert 42.5 in Spalte Wert', str_contains($reg['values'][0]['CurrentValue'], '42'));
@@ -72,16 +75,19 @@ t('Zeile ohne Speicher zeigt Festwert-Anzeige', isset($reg['values'][1]['Current
 $m->AckPurposeIntro();
 t('AckPurposeIntro setzt Attribut', $GLOBALS['attrs']['PurposeIntroGone'] === true);
 t('AckPurposeIntro reicht an Geschwister weiter (nicht an sich selbst)', $GLOBALS['adopted'] === [[22222,'PurposeIntro','']]);
+$GLOBALS['adopted'] = [];
+$m->AckForumHint();
+t('AckForumHint setzt Attribut und reicht an Geschwister weiter', $GLOBALS['attrs']['ForumHintGone'] === true && $GLOBALS['adopted'] === [[22222,'ForumHint','']]);
 $m->AckNews();
-t('AckNews speichert Version', $GLOBALS['attrs']['SeenNews'] === '1.11');
+t('AckNews speichert Version', $GLOBALS['attrs']['SeenNews'] === '1.12');
 $form2 = json_decode($m->GetConfigurationForm(), true);
-t('Nach Bestätigen fehlen Zweck- und News-Panel', ($form2['elements'][0]['name'] ?? '') === 'DocPanel');
+t('Nach Bestätigen fehlen Zweck-, News- und Feedback-Panel', ($form2['elements'][0]['name'] ?? '') === 'DocPanel' && !in_array('ForumHintPanel', array_map(fn($e) => $e['name'] ?? '', $form2['elements']), true));
 // Neue Instanz übernimmt Stand vom Geschwister
-$GLOBALS['attrs']['PurposeIntroGone']=false; $GLOBALS['attrs']['SeenNews']='';
+$GLOBALS['attrs']['PurposeIntroGone']=false; $GLOBALS['attrs']['ForumHintGone']=false; $GLOBALS['attrs']['SeenNews']='';
 $ref = new ReflectionMethod($m,'AdoptDismissFromSibling');  $ref->invoke($m);
-t('Neue Instanz übernimmt Ausblende-Stand vom Geschwister', $GLOBALS['attrs']['PurposeIntroGone']===true && $GLOBALS['attrs']['SeenNews']==='1.11');
+t('Neue Instanz übernimmt Ausblende-Stand vom Geschwister', $GLOBALS['attrs']['PurposeIntroGone']===true && $GLOBALS['attrs']['ForumHintGone']===true && $GLOBALS['attrs']['SeenNews']==='1.12');
 $st = $m->GetDismissState();
-t('GetDismissState liefert Array', $st === ['purposeIntroGone'=>true,'seenNews'=>'1.11']);
+t('GetDismissState liefert Array', $st === ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.12']);
 // Speicherzelle: schreiben/lesen über das Modul
 $ref = new ReflectionMethod($m,'applyValueToTarget'); 
 $row = ['Address'=>5000,'VariableID'=>0,'Writable'=>2,'Factor'=>1.0,'Fixed'=>100.0];
