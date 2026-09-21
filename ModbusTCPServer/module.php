@@ -36,9 +36,9 @@ class ModbusTCPServer extends IPSModule
     private const NEWS_VERSION = '1.12';
     private const LICENSE_URL = 'https://github.com/DG65/NRGModbusServer/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
-    // Rückmeldungen: Symcon-Forum-Thread existiert noch nicht, bis dahin GitHub-Issues (wie OCPPHub vor seinem Thread);
-    // sobald es einen Thread gibt, hier umstellen
-    private const FEEDBACK_URL = 'https://github.com/DG65/NRGModbusServer/issues';
+    // Modul-Thread im Symcon-Forum (Kurzform mit Themen-ID, Discourse leitet auf die aktuelle Adresse um -
+    // bleibt gültig, auch wenn der Titel des Threads geändert wird)
+    private const FEEDBACK_URL = 'https://community.symcon.de/t/144448';
 
     private const RX_DATA_ID = '{7A1272A4-CBDB-46EF-BFC6-DCF4A53D2FC7}';
     // Datenpaket "Erweitert (Socket)": gerichtetes Senden an einen Client
@@ -225,7 +225,7 @@ class ModbusTCPServer extends IPSModule
                 ['type' => 'Label', 'caption' => '• 🆕 Speicherzellen: Eine beschreibbare Registerzeile ohne Variable merkt sich den vom Client geschriebenen Wert und liefert ihn beim Lesen zurück - wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert. Praktisch für Sollwerte, die ein anderes Gerät, etwa ein ModBus-Device in derselben Installation, von diesem Server zurückliest; dessen Variablen sind schreibgeschützt und lassen sich nicht direkt beschreiben.'],
                 ['type' => 'Label', 'caption' => '• 🔧 Neuer Name: „Modbus-TCP-Server" statt „Slave", passend zur Modbus-Spezifikation (Client/Server). Bestehende Instanzen bleiben unverändert zugeordnet, nur beim Anlegen einer neuen Instanz heißt der Eintrag „NRG-Stack Modbus TCP Server".'],
                 ['type' => 'Label', 'caption' => '• 🔧 „Instanzen anlegen" (weitere Schnittstellen) fragt jetzt vorher nach und nennt, dass die Ports sofort geöffnet werden.'],
-                ['type' => 'Label', 'caption' => '• 💬 Neuer Feedback-Hinweis unten im Formular: Rückmeldungen, Fragen und Fehlermeldungen sind willkommen - solange es keinen Forum-Thread gibt, als Eintrag auf GitHub.'],
+                ['type' => 'Label', 'caption' => '• 💬 Neuer Feedback-Hinweis unten im Formular: Rückmeldungen, Fragen und Fehlermeldungen sind willkommen, am liebsten im Thread im Symcon-Forum.'],
                 ['type' => 'Label', 'caption' => '• 🔗 Bei mehreren Instanzen: „Wozu dieses Modul?", „Was ist neu?" und der Feedback-Hinweis müssen nur einmal weggeklickt werden - ein Klick gilt für alle Instanzen dieses Moduls.'],
                 ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckNews($id);'],
             ],
@@ -247,10 +247,10 @@ class ModbusTCPServer extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => '💬  Feedback',
+            'caption' => '💬  Feedback im Symcon-Forum',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Rückmeldungen, Fragen und Fehlermeldungen zu diesem Modul sind ausdrücklich willkommen. Einen Thread im Symcon-Forum gibt es noch nicht - bis dahin am besten als Eintrag (Issue) auf GitHub.'],
-                ['type' => 'Button', 'caption' => 'Zu GitHub (Rückmeldung geben)', 'onClick' => "echo '" . self::FEEDBACK_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Rückmeldungen, Fragen und Fehlermeldungen zu diesem Modul sind ausdrücklich willkommen - am liebsten im Thread im Symcon-Forum.'],
+                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FEEDBACK_URL . "';", 'link' => true],
                 ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckForumHint($id);'],
             ],
         ];

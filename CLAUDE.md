@@ -58,7 +58,7 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   Lizenz (`LicenseHint`, ganz unten, nicht wegklickbar). Ausblenden wird über alle
   Instanzen geteilt (`PropagateDismiss`/`AdoptDismissState`). Link-Buttons immer
   `'onClick' => "echo '<URL>';", 'link' => true`. Der Feedback-Hinweis (`ForumHint`, Pflicht)
-  zeigt auf GitHub-Issues, solange es keinen Forum-Thread gibt - `FEEDBACK_URL` dann umstellen.
+  zeigt auf den Forum-Thread (`FEEDBACK_URL`, Kurzform mit Themen-ID).
 - Jeder `ReadProperty…()`/`ReadAttribute…()`-Aufruf trägt einen Typ-Cast (SUITE.md 9c).
 
 ## Keine sichtbaren Hilfsordner im Wurzelverzeichnis
