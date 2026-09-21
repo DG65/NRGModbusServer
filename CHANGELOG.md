@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.11.2 (2026-09-21)
+
+- Fix (Live-Fund, Konfigurationsformular öffnete nicht): Die Versionsangabe im Doku-Panel (seit 1.11.0) las die Bibliotheks-ID aus einem Feld, das `IPS_GetInstance()` nicht liefert; die dabei entstehenden PHP-Warnungen standen vor dem Formular-JSON und machten das Formular unlesbar ("Konnte Konfigurationsform nicht laden"). Die ID wird jetzt über `IPS_GetModule()` geholt und abgesichert. Der Stub-Test bildet das Symcon-Verhalten nun genauer nach und bricht bei jeder PHP-Warnung ab
+- Fix: Die Spalte "Wert" der Registertabelle zeigte unter deutscher Locale "100," statt "100" (sprintf folgt der Locale); jetzt locale-unabhängig
+
 ## 1.11.1 (2026-09-21)
 
 - Verbund-Konventionen nachgezogen (Abgleich mit EMS): genau EIN Alias je Modul ("NRG-Stack Modbus TCP Server") statt sieben - jeder Alias erscheint in "Instanz hinzufügen" als eigener Eintrag und wirkte wie ein Duplikat. Die Suchbegriffe "Slave" entfallen damit (Preis der Regel); GUID, Klassenname und bestehende Instanzen sind nicht betroffen. Testordner von `tests` nach `.tests` (der Store-Scanner behandelt jeden sichtbaren Top-Level-Ordner als Modul und verlangt eine module.json). library.json: Kompatibilität 9.0 (auf IP-Symcon 9.0 getestet, wie bei allen Verbund-Modulen) und ein echtes Datum statt 0

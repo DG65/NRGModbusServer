@@ -13,6 +13,10 @@ declare(strict_types=1);
  */
 define('IS_ACTIVE',102); define('IS_INACTIVE',104);
 define('VARIABLETYPE_BOOLEAN',0); define('VARIABLETYPE_INTEGER',1); define('VARIABLETYPE_FLOAT',2); define('VARIABLETYPE_STRING',3);
+// PHP-Warnungen werden aufgezeichnet und am Ende geprüft (nicht als Ausnahme geworfen: Symcon wirft auch keine, sondern druckt sie VOR das
+// Formular-JSON, das Formular wird dadurch unlesbar - ein try/catch im Modul würde sie im Test verstecken)
+$GLOBALS['warnings'] = [];
+set_error_handler(function ($no, $msg, $file, $line) { $GLOBALS['warnings'][] = $msg . ' (Zeile ' . $line . ')'; return true; });
 $GLOBALS['props'] = ['RPCEnabled'=>false,'Registers'=>json_encode([
   ['Name'=>'a','Area'=>0,'Address'=>5000,'DataType'=>'float32','VariableID'=>0,'Factor'=>1,'Fixed'=>100,'Writable'=>2],
   ['Name'=>'b','Area'=>0,'Address'=>100,'DataType'=>'int32','VariableID'=>0,'Factor'=>1,'Fixed'=>0,'Writable'=>0]]),
@@ -36,8 +40,9 @@ class IPSModule {
   public function SendDebug($a,$b,$c){} public function GetValue($i){ return 0; } public function SetValue($i,$v){}
   public function GetIDForIdent($i){ return 0; } public function RegisterVariableInteger($i,$n,$p='',$pos=0){ return 1; } public function RegisterVariableFloat($i,$n,$p='',$pos=0){ return 1; } public function RegisterVariableBoolean($i,$n,$p='',$pos=0){ return 1; } public function MaintainVariable(){} public function SetStatus($s){} public function GetStatus(){ return 102; }
 }
-function IPS_GetInstance($id){ return ['ConnectionID'=>0,'InstanceStatus'=>102,'ModuleInfo'=>['LibraryID'=>'{LIB}']]; }
-function IPS_GetLibrary($id){ return ['Version'=>'1.11.0']; }
+function IPS_GetInstance($id){ return ['ConnectionID'=>0,'InstanceStatus'=>102,'ModuleInfo'=>['ModuleID'=>'{3F519A7D-1ABC-417D-BC08-8CCEDE0BEEE8}','ModuleName'=>'ModbusTCPServer']]; }
+function IPS_GetModule($g){ return ['ModuleID'=>$g,'LibraryID'=>'{1C9B79B6-35D6-4381-907C-ADAE1FEAF307}']; }
+function IPS_GetLibrary($id){ if ($id !== '{1C9B79B6-35D6-4381-907C-ADAE1FEAF307}') { trigger_error($id . ' is not a valid GUID', E_USER_WARNING); return false; } return ['Version'=>'1.11.0']; }
 function IPS_GetInstanceListByModuleID($g){ return [12345, 22222]; }
 function IPS_VariableExists($i){ return false; } function IPS_GetName($i){ return 'Test'; } function IPS_GetObject($i){ return ['ParentID'=>0]; }
 function IPS_GetProperty($i,$n){ return 0; } function IPS_VariableProfileExists($n){ return true; }
@@ -87,4 +92,15 @@ t('Speicherzelle: geschriebener Wert 60 wird zurückgeliefert', abs($cur->invoke
 $GLOBALS['attrs']['RegisterMemory'] = '{"5000":60,"9999":1}';
 $m->ApplyChanges();
 t('ApplyChanges räumt Speicher gelöschter Zeilen ab', json_decode($GLOBALS['attrs']['RegisterMemory'],true) === [5000=>60]);
+// Anzeige der Spalte "Wert": locale-unabhängig, keine hängenden Kommas
+$fmt = new ReflectionMethod($m, 'formatCurrentValue');
+$before = setlocale(LC_ALL, '0');
+foreach ([[100.0,'100'],[5.0,'5'],[0.0,'0'],[199155.0,'199155'],[40.5,'40,5'],[-3.25,'-3,25'],[0.00004,'0']] as [$in,$out]) {
+    t('Wertanzeige ' . $in . ' -> "' . $out . '"', $fmt->invoke($m, $in) === $out);
+}
+if (setlocale(LC_ALL, 'de_DE.UTF-8', 'de_DE', 'German_Germany')) {
+    t('Wertanzeige unter deutscher Locale unverändert "100"', $fmt->invoke($m, 100.0) === '100');
+    setlocale(LC_ALL, $before);
+}
+t('Keine PHP-Warnungen/Notices beim Formularaufbau und Rechnen' . ($GLOBALS['warnings'] ? ': ' . implode(' | ', array_unique($GLOBALS['warnings'])) : ''), $GLOBALS['warnings'] === []);
 echo $fail===0 ? "\nAlle Formular-Tests bestanden.\n" : "\n$fail FEHLER\n"; exit($fail?1:0);

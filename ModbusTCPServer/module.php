@@ -336,12 +336,13 @@ class ModbusTCPServer extends IPSModule
     /** Versionsstand der Bibliothek für das Doku-Panel (dauerhaft sichtbar, ohne von Hand mitgepflegt zu werden) */
     private function libraryVersion(): string
     {
-        try {
-            $libraryID = IPS_GetInstance($this->InstanceID)['ModuleInfo']['LibraryID'];
-            return (string) IPS_GetLibrary($libraryID)['Version'];
-        } catch (\Throwable $e) {
+        // LibraryID steht am Modul (IPS_GetModule), NICHT in IPS_GetInstance()['ModuleInfo'] -
+        // eine PHP-Warnung im Formular-Rückgabewert macht das ganze Formular unlesbar
+        $libraryID = (string) (IPS_GetModule(self::MODULE_GUID)['LibraryID'] ?? '');
+        if ($libraryID === '') {
             return '';
         }
+        return (string) (IPS_GetLibrary($libraryID)['Version'] ?? '');
     }
 
     /**
@@ -985,8 +986,9 @@ class ModbusTCPServer extends IPSModule
     /** Kompakte Anzeige eines Registerwerts (Formular-Spalte "Wert") */
     private function formatCurrentValue(float $value): string
     {
-        $rounded = round($value, 4);
-        return rtrim(rtrim(sprintf('%.4f', $rounded), '0'), '.') ?: '0';
+        // number_format statt sprintf: sprintf folgt der Locale (deutsch: Komma), dann bliebe "100," übrig
+        $text = rtrim(rtrim(number_format(round($value, 4), 4, ',', ''), '0'), ',');
+        return $text === '' || $text === '-' ? '0' : $text;
     }
 
     /** Eingehende gültige Modbus-Frames als Lebenszeichen verbuchen */
