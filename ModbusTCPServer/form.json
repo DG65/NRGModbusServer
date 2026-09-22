@@ -247,7 +247,7 @@
         {
           "type": "Button",
           "caption": "Datenpunkte für unzugeordnete Register anlegen",
-          "onClick": "echo MBSLV_CreateRowVariables($id, json_encode($Registers));"
+          "onClick": "echo MBSLV_CreateRowVariables($id, '');"
         }
       ]
     },

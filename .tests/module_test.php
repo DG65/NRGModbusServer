@@ -108,14 +108,34 @@ if (setlocale(LC_ALL, 'de_DE.UTF-8', 'de_DE', 'German_Germany')) {
     t('Wertanzeige unter deutscher Locale unverändert "100"', $fmt->invoke($m, 100.0) === '100');
     setlocale(LC_ALL, $before);
 }
-// CreateRowVariables: Live-Fund Solarpark 22.09.2026 - bei genau EINER Zeile liefert Symcon
-// $Registers als einzelnes Zeilen-Objekt statt als Array mit einem Element; json_encode()
-// daraus ergibt "{...}" statt "[{...}]" (Fatal Error in der alten Fassung dieser Methode).
-$rowA = ['Name' => 'a', 'Area' => 0, 'Address' => 100, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 0];
-$rowB = ['Name' => 'b', 'Area' => 0, 'Address' => 200, 'DataType' => 'float32', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 5.0, 'Writable' => 0];
-$resultArray = $m->CreateRowVariables(json_encode([$rowA, $rowB]));
-t('CreateRowVariables: Array mit zwei Zeilen legt 1 an, überspringt 1 mit Festwert', str_contains($resultArray, '1 Datenpunkt(e) angelegt') && str_contains($resultArray, '1 Zeile(n) mit Festwert'));
-$resultSingleObject = $m->CreateRowVariables(json_encode($rowA));
-t('CreateRowVariables: einzelnes Zeilen-Objekt (kein Array) stürzt nicht ab und legt 1 an', str_contains($resultSingleObject, '1 Datenpunkt(e) angelegt'));
+// CreateRowVariables: Live-Fund Solarpark 22.09.2026 - beim Klick auf den Button lieferte
+// Symcon nicht zuverlässig die echten Browser-Zeilen als Parameter, sondern u. a. nur die
+// interne "Zeile hinzufügen"-Vorlage (ein einzelnes Objekt mit Adresse 0, leerem Namen);
+// die alte Fassung legte dadurch eine Fantasie-Variable "Register 0" an und überschrieb die
+// ANZEIGE im offenen Formular mit dieser einen Zeile - die echten Zeilen wirkten verschwunden
+// (tatsächlich nur die Anzeige, die gespeicherte Konfiguration blieb unangetastet). Die
+// Methode liest jetzt AUSSCHLIESSLICH die gespeicherte Konfiguration, der Parameter wird
+// bewusst ignoriert - hier mit genau so einer Fantasie-Zeile als Parameter simuliert.
+$GLOBALS['props']['Registers'] = json_encode([
+    ['Name' => 'a', 'Area' => 0, 'Address' => 100, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 0],
+    ['Name' => 'b', 'Area' => 0, 'Address' => 200, 'DataType' => 'float32', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 5.0, 'Writable' => 0],
+]);
+$bogusBrowserRow = json_encode(['Name' => '', 'Area' => 0, 'Address' => 0, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 0]);
+$resultTwoRows = $m->CreateRowVariables($bogusBrowserRow);
+t('CreateRowVariables: legt 1 an, überspringt 1 mit Festwert - unabhängig vom (ignorierten) Parameter', str_contains($resultTwoRows, '1 Datenpunkt(e) angelegt') && str_contains($resultTwoRows, '1 Zeile(n) mit Festwert'));
+$lastUpdate = end($GLOBALS['updates']);
+$refreshedRows = json_decode($lastUpdate[2], true);
+t('Formular-Refresh zeigt die echten Zeilen, nicht die Fantasie-Zeile aus dem Parameter', $lastUpdate[0] === 'Registers' && $lastUpdate[1] === 'values' && count($refreshedRows) === 2 && $refreshedRows[0]['Address'] === 100);
+t('Formular-Refresh reichert Wert/Empfangen/Abgefragt wieder an', array_key_exists('CurrentValue', $refreshedRows[0]));
+
+// Gespeicherte Konfiguration mit genau einer Zeile - läuft weiterhin durch.
+$GLOBALS['props']['Registers'] = json_encode([
+    ['Name' => 'c', 'Area' => 0, 'Address' => 300, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 0],
+]);
+t('CreateRowVariables: gespeicherte Konfiguration mit einer Zeile legt 1 an', str_contains($m->CreateRowVariables(''), '1 Datenpunkt(e) angelegt'));
+
+// Absicherung: eine von Hand beschädigte Property (Objekt statt Array) stürzt nicht ab.
+$GLOBALS['props']['Registers'] = json_encode(['Name' => 'd', 'Area' => 0, 'Address' => 400, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 0]);
+t('CreateRowVariables: beschädigte Property (Objekt statt Array) stürzt nicht ab', str_contains($m->CreateRowVariables(''), '1 Datenpunkt(e) angelegt'));
 t('Keine PHP-Warnungen/Notices beim Formularaufbau und Rechnen' . ($GLOBALS['warnings'] ? ': ' . implode(' | ', array_unique($GLOBALS['warnings'])) : ''), $GLOBALS['warnings'] === []);
 echo $fail===0 ? "\nAlle Formular-Tests bestanden.\n" : "\n$fail FEHLER\n"; exit($fail?1:0);

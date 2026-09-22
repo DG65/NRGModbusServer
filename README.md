@@ -1,7 +1,7 @@
 # NRG-Stack ModbusServer
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.12.3-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.12.4-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml)
@@ -153,7 +153,10 @@ die Tabelle verweist normalerweise auf bestehende Variablen. Der Button **„Dat
 unzugeordnete Register anlegen"** erzeugt bei Bedarf für alle Zeilen ohne Variable einen
 Datenpunkt unter der Instanz und trägt ihn in die Tabelle ein (Zeilen mit Festwert bleiben
 unangetastet). Diese Datenpunkte können dann per Ereignis/Skript aus beliebigen Quellen
-befüllt werden – praktisch für Emulationen wie die SunSpec-Vorlage.
+befüllt werden – praktisch für Emulationen wie die SunSpec-Vorlage. Der Button arbeitet auf
+der **gespeicherten** Registertabelle – eine gerade erst hinzugefügte, noch nicht mit
+„Änderungen übernehmen" gespeicherte Zeile bekommt ihren Datenpunkt daher erst nach dem
+Speichern.
 
 ### Timeout-Absicherung (optionale Sicherung für schreibbare Register)
 

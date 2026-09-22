@@ -528,9 +528,17 @@ class ModbusTCPServer extends IPSModule
      * "Empfangen"/"Abgefragt") - rein zur Anzeige, nicht Teil der gespeicherten
      * Konfiguration (buildServer() liest nur die bekannten Registerfelder).
      */
-    private function registersForForm(): array
+    /**
+     * @param array|null $rows Vorgefertigte Zeilen (z. B. mit gerade erst vergebenen
+     *                         VariableIDs, siehe CreateRowVariables()) statt der
+     *                         gespeicherten Konfiguration - für die Live-Aktualisierung
+     *                         des offenen Formulars, bevor "Übernehmen" gespeichert hat.
+     */
+    private function registersForForm(?array $rows = null): array
     {
-        $rows = json_decode((string) $this->ReadPropertyString('Registers'), true);
+        if ($rows === null) {
+            $rows = json_decode((string) $this->ReadPropertyString('Registers'), true);
+        }
         if (!is_array($rows)) {
             return [];
         }
@@ -747,17 +755,22 @@ class ModbusTCPServer extends IPSModule
      */
     public function CreateRowVariables(string $RowsJson): string
     {
-        $rows = json_decode($RowsJson, true);
-        if (is_string($rows)) { // doppelt kodiert angeliefert
-            $rows = json_decode($rows, true);
-        }
+        // $RowsJson wird bewusst NICHT ausgewertet (Live-Fund Solarpark 22.09.2026): Der
+        // Browser-Stand des Registertabelle-Feldes kommt beim Klick auf diesen Button nicht
+        // zuverlässig als die echten Zeilen an - bei einer geöffneten Instanz lieferte Symcon
+        // hier nur die interne "Zeile hinzufügen"-Vorlage (Adresse 0, leerer Name), wodurch der
+        // Button eine Fantasie-Variable "Register 0" anlegte und die ANZEIGE im Formular mit
+        // dieser einen Zeile überschrieb - die zuvor sichtbaren echten Zeilen waren scheinbar
+        // weg (tatsächlich nur die Anzeige, die gespeicherte Konfiguration blieb unangetastet,
+        // solange nicht zusätzlich "Übernehmen" geklickt wurde). Verlässliche Quelle ist
+        // ausschließlich die gespeicherte Konfiguration; eine gerade erst hinzugefügte, noch
+        // nicht übernommene Zeile bekommt ihren Datenpunkt deshalb erst nach "Übernehmen".
+        $rows = json_decode($this->ReadPropertyString('Registers'), true);
         if (!is_array($rows) || $rows === []) {
-            return '⚠️ Die Registertabelle ist leer - zuerst Zeilen anlegen oder eine Vorlage laden.';
+            return '⚠️ Die Registertabelle ist leer - zuerst Zeilen anlegen, übernehmen und dann diesen Button erneut klicken.';
         }
-        // Bei genau einer Zeile liefert Symcon $Registers als einzelnes Zeilen-Objekt statt
-        // als Array mit einem Element - json_encode() daraus ergibt "{...}" statt "[{...}]",
-        // ohne dieses Abfangen läuft die Schleife unten über die FELDER der einen Zeile statt
-        // über die Zeile selbst (Live-Fund Solarpark 22.09.2026, Fatal Error in dieser Methode).
+        // Absicherung: eine gespeicherte Konfiguration ist immer ein echtes Array, das ist nur
+        // Sicherheitsnetz gegen eine von Hand beschädigte Property.
         if (!array_is_list($rows)) {
             $rows = [$rows];
         }
@@ -791,7 +804,9 @@ class ModbusTCPServer extends IPSModule
         }
         unset($row);
 
-        $this->UpdateFormField('Registers', 'values', json_encode($rows));
+        // registersForForm() statt der rohen $rows: reichert Wert/Empfangen/Abgefragt wieder an,
+        // sonst verschwänden diese Anzeige-Spalten nach dem Klick aus dem offenen Formular.
+        $this->UpdateFormField('Registers', 'values', json_encode($this->registersForForm($rows)));
 
         $icon = ($created + $reused) > 0 ? '✅' : '⚠️';
         $message = sprintf('%s %d Datenpunkt(e) angelegt, %d wiederverwendet und in die Tabelle eingetragen.', $icon, $created, $reused);

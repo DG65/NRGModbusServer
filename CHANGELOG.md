@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.4 (2026-09-22)
+
+- Fix (Live-Fund Solarpark, Folgefehler von 1.12.3): "Datenpunkte für unzugeordnete Register anlegen" lieferte nach dem ersten Fix zwar keinen Fatal Error mehr, aber ein falsches Ergebnis - Symcon übergibt den Browser-Stand der Registertabelle beim Klick auf diesen Button nicht zuverlässig, teils nur die interne "Zeile hinzufügen"-Vorlage (ein einzelnes Objekt mit Adresse 0, leerem Namen). Dadurch legte das Modul eine Fantasie-Variable "Register 0" an und überschrieb die ANZEIGE im offenen Formular mit dieser einen Zeile - die echten Zeilen wirkten verschwunden (tatsächlich nur die Anzeige betroffen, die gespeicherte Konfiguration blieb unangetastet, solange nicht zusätzlich "Änderungen übernehmen" geklickt wurde). Die Methode liest jetzt ausschließlich die gespeicherte Konfiguration, der übergebene Parameter wird bewusst ignoriert. Eine gerade erst hinzugefügte, noch nicht übernommene Zeile bekommt ihren Datenpunkt deshalb erst nach dem Speichern - im Formular und der README ergänzt. Regressionstests umgebaut (Gegenprobe: schlagen gegen 1.12.3 fehl, laufen gegen diese Version durch)
+
 ## 1.12.3 (2026-09-22)
 
 - Fix (Live-Fund Solarpark, Fatal Error beim Klick auf "Datenpunkte für unzugeordnete Register anlegen"): Enthielt die Registertabelle genau EINE Zeile, lieferte Symcon `$Registers` als einzelnes Zeilen-Objekt statt als Array mit einem Element - `json_encode()` daraus ergab `{...}` statt `[{...}]`. Die Methode `CreateRowVariables()` lief dadurch über die FELDER der einen Zeile statt über die Zeile selbst und stürzte mit "Cannot access offset of type string on string" ab. Erkennung per `array_is_list()`, zusätzliche Absicherung gegen weitere Anlieferungs-Eigenheiten. Neue Regressionstests (Gegenprobe: schlagen gegen den alten Code fehl, laufen gegen den neuen durch)

@@ -3,8 +3,8 @@
   "name": "NRG-Stack ModbusServer",
   "author": "DG65",
   "url": "https://github.com/DG65/NRGModbusServer",
-  "version": "1.12.3",
-  "build": 38,
+  "version": "1.12.4",
+  "build": 39,
   "date": 1789983171,
   "compatibility": {
     "version": "9.0"
