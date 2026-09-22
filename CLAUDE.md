@@ -60,6 +60,14 @@ ist die Registertabelle. Die blue'Log-RPC-Emulation ist der
   `'onClick' => "echo '<URL>';", 'link' => true`. Der Feedback-Hinweis (`ForumHint`, Pflicht)
   zeigt auf den Forum-Thread (`FEEDBACK_URL`, Kurzform mit Themen-ID).
 - Jeder `ReadProperty…()`/`ReadAttribute…()`-Aufruf trägt einen Typ-Cast (SUITE.md 9c).
+- `CreateRowVariables()` liest bewusst NICHT ihren `$RowsJson`-Parameter, sondern immer
+  `ReadPropertyString('Registers')`. Grund (Live-Fund Solarpark 22.09.2026): Der Browser-Stand
+  eines `List`-Feldes mit `loadValuesFromConfiguration: false` (unsere Registertabelle, wegen
+  der injizierten Anzeige-Spalten Wert/Empfangen/Abgefragt) kommt bei einem `onClick` nicht
+  zuverlässig als echte Zeilen an - Symcon lieferte teils nur die interne
+  "Zeile hinzufügen"-Vorlage (ein Objekt, Adresse 0, leerer Name). NIE wieder einen an ein
+  solches Feld gebundenes `$Feldname` aus `onClick` als Dateninhalt vertrauen, nur die
+  gespeicherte Property gilt als verlässliche Quelle.
 
 ## Keine sichtbaren Hilfsordner im Wurzelverzeichnis
 
