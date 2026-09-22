@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.3 (2026-09-22)
+
+- Fix (Live-Fund Solarpark, Fatal Error beim Klick auf "Datenpunkte für unzugeordnete Register anlegen"): Enthielt die Registertabelle genau EINE Zeile, lieferte Symcon `$Registers` als einzelnes Zeilen-Objekt statt als Array mit einem Element - `json_encode()` daraus ergab `{...}` statt `[{...}]`. Die Methode `CreateRowVariables()` lief dadurch über die FELDER der einen Zeile statt über die Zeile selbst und stürzte mit "Cannot access offset of type string on string" ab. Erkennung per `array_is_list()`, zusätzliche Absicherung gegen weitere Anlieferungs-Eigenheiten. Neue Regressionstests (Gegenprobe: schlagen gegen den alten Code fehl, laufen gegen den neuen durch)
+
 ## 1.12.2 (2026-09-21)
 
 - Der Lizenz-Link im Formular ("Über dieses Modul") zeigt auf den Branch `beta` statt `main`: `beta` ist der Branch, den der Store-Beta-Kanal ausliefert und der die aktuelle PolyForm-Lizenz trägt; `main` wird erst mit dem späteren Wechsel nach `main` wieder gepflegt

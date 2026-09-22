@@ -754,11 +754,21 @@ class ModbusTCPServer extends IPSModule
         if (!is_array($rows) || $rows === []) {
             return '⚠️ Die Registertabelle ist leer - zuerst Zeilen anlegen oder eine Vorlage laden.';
         }
+        // Bei genau einer Zeile liefert Symcon $Registers als einzelnes Zeilen-Objekt statt
+        // als Array mit einem Element - json_encode() daraus ergibt "{...}" statt "[{...}]",
+        // ohne dieses Abfangen läuft die Schleife unten über die FELDER der einen Zeile statt
+        // über die Zeile selbst (Live-Fund Solarpark 22.09.2026, Fatal Error in dieser Methode).
+        if (!array_is_list($rows)) {
+            $rows = [$rows];
+        }
 
         $created = 0;
         $reused = 0;
         $skipped = 0;
         foreach ($rows as &$row) {
+            if (!is_array($row)) { // zusätzliche Absicherung gegen weitere Anlieferungs-Eigenheiten
+                continue;
+            }
             $variable = (int) ($row['VariableID'] ?? 0);
             if ($variable >= 10000 && IPS_VariableExists($variable)) {
                 continue; // bereits zugeordnet
