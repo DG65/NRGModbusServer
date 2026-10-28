@@ -85,8 +85,11 @@ Manueller Gegentest: `modpoll` (Beispiele im README).
 
 ## Branch-Modell
 
-Arbeitsbranch `ems-integration` (verbundweit identisch), Merge nach
-`beta`/`main` erst nach Bewährung. Nutzersichtbares deutsch.
+Seit 27.10.2026 (Verbundentscheidung, alle Betas sind Stable) gibt es nur noch `beta`
+(Arbeitsbranch, Store-Beta) und `main` (Stable). Der frühere verbundweite
+Zwischenbranch `ems-integration` ist abgeschafft und gelöscht. Änderungen landen auf
+`beta`; `main` wird erst nach Bewährung per Fast-Forward nachgezogen. Nutzersichtbares
+deutsch.
 
 ## Verbund-Manifest SUITE.md — Bezugsquelle (geändert 31.08.2026)
 
