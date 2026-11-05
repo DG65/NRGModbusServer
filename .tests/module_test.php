@@ -37,6 +37,7 @@ class IPSModule {
   public function WriteAttributeString($n,$v){ $GLOBALS['attrs'][$n]=$v; } public function WriteAttributeBoolean($n,$v){ $GLOBALS['attrs'][$n]=$v; }
   public function RegisterTimer($n,$i,$s){} public function SetTimerInterval($n,$i){} public function RegisterMessage($a,$b){}
   public function UpdateFormField($f,$k,$v){ $GLOBALS['updates'][] = [$f,$k,$v]; }
+  public function Translate($text){ $GLOBALS['translateCalls']++; return $GLOBALS['locale'][$text] ?? $text; }
   public function SendDebug($a,$b,$c){} public function GetValue($i){ return 0; } public function SetValue($i,$v){}
   public function GetIDForIdent($i){ return 0; } public function RegisterVariableInteger($i,$n,$p='',$pos=0){ return 1; } public function RegisterVariableFloat($i,$n,$p='',$pos=0){ return 1; } public function RegisterVariableBoolean($i,$n,$p='',$pos=0){ return 1; } public function MaintainVariable(){} public function SetStatus($s){} public function GetStatus(){ return 102; }
 }
@@ -46,9 +47,12 @@ function IPS_GetLibrary($id){ if ($id !== '{1C9B79B6-35D6-4381-907C-ADAE1FEAF307
 function IPS_GetInstanceListByModuleID($g){ return [12345, 22222]; }
 function IPS_VariableExists($i){ return false; } function IPS_GetName($i){ return 'Test'; } function IPS_GetObject($i){ return ['ParentID'=>0]; }
 function IPS_GetProperty($i,$n){ return 0; } function IPS_VariableProfileExists($n){ return true; }
-$sibState = ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.12']; $GLOBALS['adopted']=[];
+$sibState = ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.13']; $GLOBALS['adopted']=[];
 function MBSLV_AdoptDismissState($id,$w,$v){ $GLOBALS['adopted'][]=[$id,$w,$v]; }
 function MBSLV_GetDismissState($id){ global $sibState; return $sibState; }
+// Symcon-Sprache: Deutsch (locale.json) - Quelltexte sind englisch, die vorhandenen Prüfungen unten erwarten die deutsche Fassung
+$GLOBALS['locale'] = json_decode(file_get_contents(__DIR__ . '/../ModbusTCPServer/locale.json'), true)['translations']['de'];
+$GLOBALS['translateCalls'] = 0;
 require __DIR__ . '/../ModbusTCPServer/module.php';
 $m = new ModbusTCPServer();
 $fail = 0; function t($n,$ok){ global $fail; echo ($ok?'OK   ':'FAIL ').$n."\n"; if(!$ok)$fail++; }
@@ -58,7 +62,7 @@ t('Formular ist gültiges JSON', is_array($form) && isset($form['elements']));
 $caps = array_map(fn($e)=>($e['name'] ?? '') ?: ($e['caption'] ?? $e['type']), $form['elements']);
 echo '   Reihenfolge: ' . implode(' | ', array_map(fn($c)=>mb_substr($c,0,28), $caps)) . "\n";
 t('1. Panel = Zweck', ($form['elements'][0]['name'] ?? '') === 'PurposeIntroPanel');
-t('2. Panel = Neu in Version', ($form['elements'][1]['name'] ?? '') === 'NewsPanel' && str_contains($form['elements'][1]['caption'], '1.12'));
+t('2. Panel = Neu in Version', ($form['elements'][1]['name'] ?? '') === 'NewsPanel' && str_contains($form['elements'][1]['caption'], '1.13'));
 t('3. Panel = Dokumentation & Hilfe, eingeklappt', ($form['elements'][2]['name'] ?? '') === 'DocPanel' && $form['elements'][2]['expanded'] === false);
 t('Doku-Panel nennt Version', str_contains($form['elements'][2]['items'][0]['caption'], '1.11.0'));
 $last = end($form['elements']);
@@ -79,15 +83,15 @@ $GLOBALS['adopted'] = [];
 $m->AckForumHint();
 t('AckForumHint setzt Attribut und reicht an Geschwister weiter', $GLOBALS['attrs']['ForumHintGone'] === true && $GLOBALS['adopted'] === [[22222,'ForumHint','']]);
 $m->AckNews();
-t('AckNews speichert Version', $GLOBALS['attrs']['SeenNews'] === '1.12');
+t('AckNews speichert Version', $GLOBALS['attrs']['SeenNews'] === '1.13');
 $form2 = json_decode($m->GetConfigurationForm(), true);
 t('Nach Bestätigen fehlen Zweck-, News- und Feedback-Panel', ($form2['elements'][0]['name'] ?? '') === 'DocPanel' && !in_array('ForumHintPanel', array_map(fn($e) => $e['name'] ?? '', $form2['elements']), true));
 // Neue Instanz übernimmt Stand vom Geschwister
 $GLOBALS['attrs']['PurposeIntroGone']=false; $GLOBALS['attrs']['ForumHintGone']=false; $GLOBALS['attrs']['SeenNews']='';
 $ref = new ReflectionMethod($m,'AdoptDismissFromSibling');  $ref->invoke($m);
-t('Neue Instanz übernimmt Ausblende-Stand vom Geschwister', $GLOBALS['attrs']['PurposeIntroGone']===true && $GLOBALS['attrs']['ForumHintGone']===true && $GLOBALS['attrs']['SeenNews']==='1.12');
+t('Neue Instanz übernimmt Ausblende-Stand vom Geschwister', $GLOBALS['attrs']['PurposeIntroGone']===true && $GLOBALS['attrs']['ForumHintGone']===true && $GLOBALS['attrs']['SeenNews']==='1.13');
 $st = $m->GetDismissState();
-t('GetDismissState liefert Array', $st === ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.12']);
+t('GetDismissState liefert Array', $st === ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.13']);
 // Speicherzelle: schreiben/lesen über das Modul
 $ref = new ReflectionMethod($m,'applyValueToTarget'); 
 $row = ['Address'=>5000,'VariableID'=>0,'Writable'=>2,'Factor'=>1.0,'Fixed'=>100.0];
@@ -137,5 +141,96 @@ t('CreateRowVariables: gespeicherte Konfiguration mit einer Zeile legt 1 an', st
 // Absicherung: eine von Hand beschädigte Property (Objekt statt Array) stürzt nicht ab.
 $GLOBALS['props']['Registers'] = json_encode(['Name' => 'd', 'Area' => 0, 'Address' => 400, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 0]);
 t('CreateRowVariables: beschädigte Property (Objekt statt Array) stürzt nicht ab', str_contains($m->CreateRowVariables(''), '1 Datenpunkt(e) angelegt'));
+
+// ---------------------------------------------------------------------------------------------
+// Zweisprachigkeit DE/EN (SUITE.md Konventionen Punkt 9)
+// ---------------------------------------------------------------------------------------------
+$deMap = json_decode(file_get_contents(__DIR__ . '/../ModbusTCPServer/locale.json'), true)['translations']['de'];
+$moduleSrc = file_get_contents(__DIR__ . '/../ModbusTCPServer/module.php');
+$formSrc = json_decode(file_get_contents(__DIR__ . '/../ModbusTCPServer/form.json'), true);
+
+// Texte, die in beiden Sprachen bewusst gleich lauten (Eigennamen, Fachkürzel, Symbole)
+$sameInBoth = ['Name', 'Holding', 'Input', 'Variable', 'Status', 'Unit-ID', ' ', '–', 'uint16', 'int16', 'uint32', 'int32', 'float32', 'float64'];
+
+// 1. form.json: jeder Anzeigetext ist ein englischer Quelltext mit deutscher Fassung in locale.json
+$walk = function ($node) use (&$walk, &$formTexts) {
+    foreach ($node as $k => $v) {
+        if (is_string($k) && in_array($k, ['caption', 'confirm', 'label'], true) && is_string($v) && $v !== '') {
+            $formTexts[] = $v;
+        } elseif (is_array($v)) {
+            $walk($v);
+        }
+    }
+};
+$formTexts = [];
+$walk($formSrc);
+$missing = array_values(array_filter(array_unique($formTexts), fn ($x) => !isset($deMap[$x]) && !in_array($x, $sameInBoth, true)));
+t('form.json: jeder Anzeigetext steht in locale.json' . ($missing ? ' - fehlt: ' . implode(' | ', array_map(fn ($x) => mb_substr($x, 0, 40), $missing)) : ''), $missing === []);
+$germanInForm = array_values(array_filter(array_unique($formTexts), fn ($x) => preg_match('/[äöüÄÖÜß]/u', $x) === 1));
+t('form.json: kein deutscher Text mehr im Quelltext (keine Umlaute)' . ($germanInForm ? ' - ' . mb_substr($germanInForm[0], 0, 40) : ''), $germanInForm === []);
+
+// 2. module.php: jedes $this->t('...')-Literal und jede dynamische Panel-Beschriftung steht in locale.json
+preg_match_all('/\$this->t\(\s*\'((?:[^\'\\\\]|\\\\.)*)\'/u', $moduleSrc, $mt);
+preg_match_all('/\'caption\'\s*=>\s*\'((?:[^\'\\\\]|\\\\.)*)\'/u', $moduleSrc, $mc);
+$codeTexts = array_map(fn ($x) => str_replace(["\\'", '\\\\'], ["'", '\\'], $x), array_merge($mt[1], $mc[1]));
+$missing = array_values(array_filter(array_unique($codeTexts), fn ($x) => $x !== '' && !isset($deMap[$x]) && !in_array($x, $sameInBoth, true)));
+t('module.php: jeder übersetzbare Text steht in locale.json' . ($missing ? ' - fehlt: ' . implode(' | ', array_map(fn ($x) => mb_substr($x, 0, 50), $missing)) : ''), $missing === []);
+
+// 3. kein deutscher Text mehr im Code (Zeichenketten-Literale, ohne Kommentare)
+$germanInCode = [];
+foreach (token_get_all($moduleSrc) as $tok) {
+    if (is_array($tok) && in_array($tok[0], [T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE], true) && preg_match('/[äöüÄÖÜß]/u', $tok[1])) {
+        $germanInCode[] = $tok[2] . ': ' . mb_substr($tok[1], 0, 50);
+    }
+}
+t('module.php: kein deutscher Text mehr in Zeichenketten' . ($germanInCode ? ' - ' . $germanInCode[0] : ''), $germanInCode === []);
+
+// 4. locale.json: Platzhalter je Eintrag in Englisch und Deutsch gleich, deutsche Fassung nicht leer
+$ph = fn ($x) => preg_match_all('/%(?:\d+\$)?[-+ 0]?\d*(?:\.\d+)?[sdfF]/', str_replace('%%', '', $x));
+$badPh = array_keys(array_filter($deMap, fn ($de, $en) => $ph($en) !== $ph($de) || trim($de) === '', ARRAY_FILTER_USE_BOTH));
+t('locale.json: Platzhalter gleich und keine leeren Texte' . ($badPh ? ' - ' . mb_substr((string) $badPh[0], 0, 50) : ''), $badPh === []);
+t('locale.json: kein "IP-Symcon" mehr in deutschen Texten', array_filter($deMap, fn ($de) => str_contains($de, 'IP-Symcon')) === []);
+
+// 5. Formular in Englisch erzeugen: keine deutschen Reste, gültiges JSON, Texte werden unverändert (englisch) ausgeliefert
+$memo = new ReflectionProperty(ModbusTCPServer::class, 'translations');
+$memo->setValue(null, []);
+$GLOBALS['locale'] = []; // Symcon-Sprache Englisch: Quelltext bleibt
+$GLOBALS['props']['Registers'] = json_encode([['Name' => 'x', 'Area' => 0, 'Address' => 1, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 1]]);
+$GLOBALS['attrs']['PurposeIntroGone'] = false; $GLOBALS['attrs']['ForumHintGone'] = false; $GLOBALS['attrs']['SeenNews'] = '';
+$en = json_decode($m->GetConfigurationForm(), true);
+$enTexts = [];
+$collect = function ($node) use (&$collect, &$enTexts) {
+    foreach ($node as $k => $v) {
+        if (is_string($k) && in_array($k, ['caption', 'confirm', 'label'], true) && is_string($v)) { $enTexts[] = $v; }
+        elseif (is_array($v)) { $collect($v); }
+    }
+};
+$collect($en);
+$collect($en['actions'] ?? []);
+t('Formular englisch: gültiges JSON mit Elementen', is_array($en) && !empty($en['elements']));
+$germanEn = array_values(array_filter($enTexts, fn ($x) => preg_match('/[äöüÄÖÜß]|\b(Dokumentation|Registertabelle|Schreiben|Nein|Verbindung|Zeitüberwachung)\b/u', $x)));
+t('Formular englisch: keine deutschen Reste' . ($germanEn ? ' - ' . mb_substr($germanEn[0], 0, 60) : ''), $germanEn === []);
+t('Formular englisch: Kopf- und Panel-Texte englisch', str_contains(json_encode($en, JSON_UNESCAPED_UNICODE), 'What is this module for?') && str_contains(json_encode($en, JSON_UNESCAPED_UNICODE), 'About this module') && str_contains(json_encode($en, JSON_UNESCAPED_UNICODE), 'Register table'));
+fwrite(STDERR, "   (englisches Formular: " . count(array_unique($enTexts)) . " verschiedene Texte)\n");
+
+// 6. Dezimalzeichen sprachabhängig (Registerwert-Anzeige)
+$fmt = new ReflectionMethod($m, 'formatCurrentValue');
+t('Wertanzeige englisch: Punkt als Dezimalzeichen (40.5)', $fmt->invoke($m, 40.5) === '40.5');
+$GLOBALS['locale'] = $deMap; $memo->setValue(null, []);
+t('Wertanzeige deutsch: Komma als Dezimalzeichen (40,5)', $fmt->invoke($m, 40.5) === '40,5');
+
+// 7. Stolperstein 24: Übersetzungen werden je Prozess gemerkt - der zweite Formularaufbau fragt Symcon nicht erneut
+$m->GetConfigurationForm();
+$before = $GLOBALS['translateCalls'];
+$m->GetConfigurationForm();
+$m->GetConfigurationForm();
+t('Translate() wird je Text höchstens einmal je Prozess aufgerufen (zweiter/dritter Formularaufbau: 0 neue Aufrufe)', $GLOBALS['translateCalls'] === $before);
+
+// 8. Meldungen zweisprachig: Vorlage laden in beiden Sprachen
+$GLOBALS['locale'] = []; $memo->setValue(null, []);
+t('Meldung englisch: SunSpec-Vorlage', str_contains($m->LoadTemplate('sunspec113'), 'SunSpec template loaded'));
+$GLOBALS['locale'] = $deMap; $memo->setValue(null, []);
+t('Meldung deutsch: SunSpec-Vorlage', str_contains($m->LoadTemplate('sunspec113'), 'SunSpec-Vorlage geladen'));
+
 t('Keine PHP-Warnungen/Notices beim Formularaufbau und Rechnen' . ($GLOBALS['warnings'] ? ': ' . implode(' | ', array_unique($GLOBALS['warnings'])) : ''), $GLOBALS['warnings'] === []);
 echo $fail===0 ? "\nAlle Formular-Tests bestanden.\n" : "\n$fail FEHLER\n"; exit($fail?1:0);

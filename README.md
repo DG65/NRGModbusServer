@@ -1,13 +1,15 @@
 # NRG-Stack ModbusServer
 
+*English version: [README.en.md](README.en.md)*
+
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.12.4-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.13.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGModbusServer/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Me-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
-IP-Symcon-Bibliothek aus dem NRG-Stack, die IPS zum **Modbus-TCP-Server (Slave)** macht. Externe Modbus-Clients
+Symcon-Bibliothek aus dem NRG-Stack, die Symcon zum **Modbus-TCP-Server (Slave)** macht. Externe Modbus-Clients
 (Master) lesen und schreiben IPS-Variablen über eine frei konfigurierbare Registertabelle.
 
 **Teil des NRG-Stack** — dem Energie-Modulverbund von DG65.
@@ -17,7 +19,7 @@ Datenblätter, Geräte und Werkzeuge (z. B. ModRSsim2) sagen *Master* und *Slave
 Dieses Modul ist der **Server (Slave)**, die abfragende Gegenstelle der **Client (Master)**. Im Text und
 in der Oberfläche kommen beide Schreibweisen vor, damit man sie mit der Gerätedokumentation abgleichen kann.
 
-IP-Symcon selbst bietet von Haus aus nur Modbus-**Client**-Funktionalität (Master) – dieses Modul
+Symcon selbst bietet von Haus aus nur Modbus-**Client**-Funktionalität (Master) – dieses Modul
 ergänzt die Gegenrichtung. Typische Einsätze:
 
 - IPS-Messwerte für ein übergeordnetes EMS, SCADA- oder Leitsystem bereitstellen
@@ -212,7 +214,7 @@ neu. Ein Watchdog **nach** Ablauf hält die Vorgabe nicht am Leben – sie muss 
 werden. Nach Ablauf fällt der wirksame Sollwert auf den konfigurierbaren
 **Rückfall-Sollwert** (Standard 100 %) zurück.
 
-**Variablen bei aktivierter RPC-Schnittstelle:**
+**Variablen bei aktivierter RPC-Schnittstelle** (Namen wie in der deutschen Oberfläche angelegt; in einer englischen Oberfläche angelegte Instanzen tragen die englischen Namen, siehe [README.en.md](README.en.md)):
 
 | Variable | Bedeutung |
 |----------|-----------|
@@ -230,7 +232,7 @@ und den Wert über eine IPS-ModBus-Master-Instanz in Register 5000 des blue'Log 
 
 ### Einrichtung
 
-1. Modul über die Modulverwaltung installieren (GitHub-URL)
+1. Modul über die Modulverwaltung (GitHub-URL) oder den Module Store installieren
 2. Instanz „NRG-Stack Modbus TCP Server" anlegen – der Server Socket wird automatisch erstellt
 3. Port am Server Socket einstellen (z. B. 502) und Socket aktivieren
 4. Registertabelle füllen (manuell oder per Vorlage), Variablen zuordnen, übernehmen
@@ -255,7 +257,7 @@ modpoll -m tcp -t4:float -r 5000 -a 10 -0 -1 <IPS-IP> 30
 ## Tests
 
 Der Protokollkern (`libs/ModbusServer.php`) ist IPS-frei und mit der PHP-CLI testbar, ebenso das Modul selbst
-(Formularaufbau, Speicherzellen) über eine kleine Stub-Umgebung ohne IPS:
+(Formularaufbau, Speicherzellen, deutsche und englische Texte) über eine kleine Stub-Umgebung ohne IPS:
 
 ```
 php .tests/codec_test.php

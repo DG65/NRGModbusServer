@@ -3,59 +3,59 @@
     {
       "type": "ExpansionPanel",
       "name": "DocPanel",
-      "caption": "📖  Dokumentation & Hilfe",
+      "caption": "📖  Documentation & Help",
       "expanded": false,
       "items": [
         {
           "type": "Label",
-          "caption": "Dieses Modul macht IP-Symcon zum Modbus-TCP-Server (Slave): externe Modbus-Clients (Master) lesen und schreiben IPS-Variablen über die unten definierte Registertabelle. Beide Schreibweisen bedeuten dasselbe - die Modbus-Spezifikation sagt Client/Server, ältere Datenblätter und Geräte oft noch Master/Slave. Der TCP-Port wird auf der übergeordneten Server-Socket-Instanz eingestellt (üblich 502). Mehrere gleichzeitige Verbindungen auf demselben Port sind möglich."
+          "caption": "This module turns Symcon into a Modbus TCP server (slave): external Modbus clients (masters) read and write Symcon variables through the register table defined below. Both terms mean the same thing - the Modbus specification says client/server, older data sheets and devices often still say master/slave. The TCP port is set on the parent Server Socket instance (usually 502). Several simultaneous connections on the same port are possible."
         },
         {
           "type": "Label",
-          "caption": "Registertabelle: Jede Zeile bildet einen Wert ab. 'Adresse' ist die 0-basierte Protokolladresse des ersten Words; Mehrwort-Typen (int32/uint32/float32 = 2 Words, float64 = 4 Words) belegen die Folgeadressen. 'Faktor' skaliert von der Variable zum Register (Registerwert = Variablenwert x Faktor; beim Schreiben umgekehrt). Ist keine Variable zugeordnet und Schreiben auf 'Nein', wird der 'Festwert' geliefert. Ist keine Variable zugeordnet, Schreiben aber erlaubt, arbeitet die Zeile als Speicherzelle (siehe unten)."
+          "caption": "Register table: Each row maps one value. 'Address' is the 0-based protocol address of the first word; multi-word types (int32/uint32/float32 = 2 words, float64 = 4 words) occupy the following addresses. 'Factor' scales from the variable to the register (register value = variable value x factor; the reverse when writing). If no variable is assigned and 'Write' is set to 'No', the 'Fixed value' is returned. If no variable is assigned but writing is allowed, the row works as a memory cell (see below)."
         },
         {
           "type": "Label",
-          "caption": "Schreiben (Spalte 'Schreiben'): 'Nein' = der Master darf nur lesen (Schreibversuche werden quittiert, aber verworfen). 'Ja - Aktion' = ein vom Master geschriebener Wert wird per RequestAction an die Variable übergeben, falls sie eine Aktion besitzt (z. B. schaltet so ein Schreibzugriff einen Aktor), sonst per SetValue. 'Ja - direkt' = immer SetValue, die Aktion der Variable wird bewusst NICHT ausgelöst - nötig, wenn die Variable einer anderen Instanz gehört (z. B. ein Register eines ModBus-Device), deren Aktion sonst versuchen würde, den Wert in ein ganz anderes Gerät zu schreiben."
+          "caption": "Write (column 'Write'): 'No' = the master may only read (write attempts are acknowledged but discarded). 'Yes - action' = a value written by the master is passed to the variable via RequestAction if it has an action (e.g. a write access switches an actuator), otherwise via SetValue. 'Yes - direct' = always SetValue, the variable's action is deliberately NOT triggered - required when the variable belongs to another instance (e.g. a register of a ModBus device) whose action would otherwise try to write the value to a completely different device."
         },
         {
           "type": "Label",
-          "caption": "Speicherzelle (Zeile ohne Variable, Schreiben 'Ja'): Wie bei einem klassischen Modbus-Server (z. B. ModRSsim2) merkt sich das Register den vom Master geschriebenen Wert und liefert ihn beim nächsten Lesen zurück - dauerhaft, auch nach einem Neustart. Der 'Festwert' ist nur der Startwert, bis zum ersten Schreibzugriff. Die Schreib-Varianten 'Aktion' und 'direkt' verhalten sich hier gleich. Typisch: Sollwert-Register, die ein Direktvermarkter beschreibt und ein ModBus-Device (oder ein anderes Gerät im eigenen Netz) von diesem Server zurückliest. Der Wert steht in der Spalte 'Wert'; wird die Zeile gelöscht oder einer Variable zugeordnet, verfällt der gemerkte Wert. Die Timeout-Absicherung funktioniert auch mit Speicherzellen (der Rückfallwert wird in die Zelle geschrieben)."
+          "caption": "Memory cell (row without a variable, Write set to 'Yes'): As with a classic Modbus server (e.g. ModRSsim2), the register remembers the value written by the master and returns it on the next read - permanently, even after a restart. The 'Fixed value' is only the start value until the first write access. The write variants 'action' and 'direct' behave the same here. Typical use: setpoint registers that a direct marketer writes and a ModBus device (or another device on your own network) reads back from this server. The value is shown in the 'Value' column; if the row is deleted or assigned to a variable, the remembered value is discarded. The timeout protection also works with memory cells (the fallback value is written into the cell)."
         },
         {
           "type": "Label",
-          "caption": "Bestehenden Modbus-Server (Slave) ersetzen (z. B. Simulator wie ModRSsim2 oder eine SPS): 1) Registertabelle exakt wie beim alten Server anlegen - Adressen, Datentypen, Word-Order und Unit-ID übernehmen, im Zweifel 'Anfragen an fremde Unit-IDs ablehnen' zunächst AUS lassen. 2) Dieselben IPS-Variablen wie bisher verknüpfen, damit vorhandene Skripte/Ereignisse unverändert weiterlaufen; gehören die Variablen einer anderen Instanz (typisch: ein bisheriges ModBus-Device, das den alten Server bedient hat), Schreibmodus 'Ja - direkt' wählen. Ist die bisherige Variable schreibgeschützt oder gehört sie einem ModBus-Device, das selbst den Server abfragt (Sollwerte, die ein Direktvermarkter schreibt und ein ModBus-Device zurückliest), lassen Sie stattdessen die Variable leer: die Zeile wird zur Speicherzelle, und das ModBus-Device liest den Wert von diesem Server. 3) Alten Server auf diesem Port stoppen, dann den Server Socket dieser Instanz auf demselben Port öffnen. 4) Kontrolle über die Verbindungszeile oben ('zuletzt ... Uhr' muss im Polltakt des Clients weiterlaufen) und im Debug-Fenster der Instanz. Rückweg jederzeit: Server Socket schließen, alten Server starten."
+          "caption": "Replacing an existing Modbus server (slave) (e.g. a simulator such as ModRSsim2, or a PLC): 1) Create the register table exactly like the old server - take over addresses, data types, word order and unit ID; if in doubt, leave 'Reject requests to other unit IDs' OFF at first. 2) Link the same Symcon variables as before so existing scripts/events keep working unchanged; if the variables belong to another instance (typically a previous ModBus device that served the old server), choose write mode 'Yes - direct'. If the previous variable is write-protected or belongs to a ModBus device that itself polls the server (setpoints that a direct marketer writes and a ModBus device reads back), leave the variable empty instead: the row becomes a memory cell, and the ModBus device reads the value from this server. 3) Stop the old server on this port, then open this instance's Server Socket on the same port. 4) Check via the connection line above ('last ... o'clock' must keep advancing at the client's polling interval) and in the instance's debug window. You can go back at any time: close the Server Socket, start the old server."
         },
         {
           "type": "Label",
-          "caption": "Unbelegte Register: Fragt ein Master eine Adresse an, zu der keine Tabellenzeile existiert, liefert das Modul je nach Einstellung entweder den Wert 0 (tolerant, Standard - sinnvoll wenn Master ganze Blöcke lesen) oder eine Modbus-Exception 'Illegal Data Address' (strikt - Fehler werden sofort sichtbar)."
+          "caption": "Unmapped registers: If a master requests an address for which no table row exists, the module returns either the value 0 (tolerant, default - useful when masters read whole blocks) or a Modbus exception 'Illegal Data Address' (strict - errors become visible immediately), depending on the setting."
         },
         {
           "type": "Label",
-          "caption": "Word-Reihenfolge: Modbus überträgt jedes 16-Bit-Register Big-Endian. Bei Mehrwort-Werten bestimmt die Option 'Low-Word zuerst' die Word-Reihenfolge (eingeschaltet = CDAB, z. B. Meteocontrol; ausgeschaltet = ABCD, z. B. SunSpec). Was die Gegenstelle erwartet, steht in deren Registerdokumentation."
+          "caption": "Word order: Modbus transmits each 16-bit register big-endian. For multi-word values, the 'Low word first' option determines the word order (on = CDAB, e.g. Meteocontrol; off = ABCD, e.g. SunSpec). What the remote side expects is stated in its register documentation."
         },
         {
           "type": "Label",
-          "caption": "Statusampel und Kommunikationsüberwachung: Die Variable 'Letzte Modbus-Anfrage' zeigt jederzeit, wann zuletzt ein Master gepollt hat. Ist der Server Socket bewusst geschlossen ('Aktiv' dort ausgeschaltet, z. B. bei einer vorbereiteten, noch nicht in Betrieb genommenen Instanz), zeigt die Instanz 'Inaktiv' - das ist kein Fehler. Soll der Socket eigentlich laufen, erreicht aber keinen aktiven Zustand (z. B. Port belegt), wechselt die Instanz dagegen auf einen echten Fehlerstatus. Mit der Kommunikationsüberwachung (Minuten, 0 = aus) meldet die Instanz zusätzlich einen Fehler, wenn so lange keine Modbus-Anfrage mehr eintraf - für die Direktvermarktung empfohlen (z. B. 5 min), denn 'Master pollt nicht mehr' ist dort der wichtigste Alarmzustand."
+          "caption": "Status indicator and communication monitoring: The variable 'Last Modbus request' always shows when a master last polled. If the Server Socket is deliberately closed ('Active' switched off there, e.g. for a prepared instance not yet in operation), the instance shows 'Inactive' - this is not an error. If the socket is supposed to run but does not reach an active state (e.g. port in use), the instance switches to a real error status instead. With communication monitoring (minutes, 0 = off), the instance additionally reports an error if no Modbus request has arrived for that long - recommended for direct marketing (e.g. 5 min), because 'master no longer polling' is the most important alarm condition there."
         },
         {
           "type": "Label",
-          "caption": "Vorlagen: Der Button 'Vorlage laden' füllt die Registertabelle mit einer vorbereiteten Belegung (Meteocontrol blue'Log RPC oder SunSpec-Wechselrichter) und setzt die passende Word-Order. Gespeichert wird erst mit 'Änderungen übernehmen'."
+          "caption": "Templates: The 'Load template' button fills the register table with a prepared layout (Meteocontrol blue'Log RPC or SunSpec inverter) and sets the matching word order. Nothing is saved until you click 'Apply changes'."
         },
         {
           "type": "Label",
-          "caption": "Meteocontrol RPC (Direktvermarktung): Die Steuer-Register 5000 (Sollwert), 5002-5005 (Reserve), 5006 (Gültigkeitsdauer) und 5008 (Watchdog) verwaltet das Modul intern - sie erscheinen NICHT in der Registertabelle. Die Vorlage lädt die zugehörigen Istwert-Register (0-14, 100-114, 4000). Nach Ablauf der Gültigkeitsdauer fällt der 'Wirksame DV-Sollwert' auf den Rückfall-Sollwert zurück."
+          "caption": "Meteocontrol RPC (direct marketing): The module manages the control registers 5000 (setpoint), 5002-5005 (reserve), 5006 (validity period) and 5008 (watchdog) internally - they do NOT appear in the register table. The template loads the associated actual-value registers (0-14, 100-114, 4000). When the validity period expires, the 'Effective direct marketing setpoint' falls back to the fallback setpoint."
         },
         {
           "type": "Label",
-          "caption": "Timeout-Absicherung (Panel weiter unten): Ohne RPC-Vorlage kennt die Registertabelle von sich aus KEIN Ablaufdatum für einen geschriebenen Wert - ein einmal gesetzter Sollwert bleibt bei Verbindungsverlust des Masters unbegrenzt stehen. Für einzelne schreibbare Register lässt sich optional eine eigene Gültigkeitsdauer nachrüsten: Wird das Register so lange nicht neu beschrieben, setzt das Modul automatisch einen Rückfallwert - unabhängig davon, ob die RPC-Vorlage überhaupt verwendet wird. Beispiel Meteocontrol blue'Log: Sollwert-Register 5000, Gültigkeitsdauer kommt aus Register 5006 (vom Master selbst in Minuten mitgeliefert), Rückfallwert 100 (keine Abregelung)."
+          "caption": "Timeout protection (panel further below): Without the RPC template, the register table has NO expiry date for a written value on its own - a setpoint, once set, stays in place indefinitely if the master loses its connection. For individual writable registers, you can optionally add your own validity period: if the register is not rewritten for that long, the module automatically sets a fallback value - regardless of whether the RPC template is used at all. Example Meteocontrol blue'Log: setpoint register 5000, validity period taken from register 5006 (supplied by the master itself in minutes), fallback value 100 (no curtailment)."
         }
       ]
     },
     {
       "type": "Label",
       "name": "PortInfo",
-      "caption": "Verbindungsstatus wird beim Öffnen ermittelt..."
+      "caption": "Connection status is determined when the form is opened..."
     },
     {
       "type": "RowLayout",
@@ -71,29 +71,29 @@
         {
           "type": "CheckBox",
           "name": "CheckUnitID",
-          "caption": "Anfragen an fremde Unit-IDs ablehnen",
+          "caption": "Reject requests to other unit IDs",
           "width": "400px"
         },
         {
           "type": "CheckBox",
           "name": "SwapWords",
-          "caption": "Low-Word zuerst (CDAB)",
+          "caption": "Low word first (CDAB)",
           "width": "340px"
         },
         {
           "type": "Select",
           "name": "UnmappedRead",
-          "caption": "Antwort beim Lesen unbelegter Register",
+          "caption": "Response when reading unmapped registers",
           "width": "340px",
           "options": [
-            { "caption": "0 liefern (tolerant, Standard)", "value": 0 },
-            { "caption": "Modbus-Exception 'Illegal Data Address'", "value": 1 }
+            { "caption": "Return 0 (tolerant, default)", "value": 0 },
+            { "caption": "Modbus exception 'Illegal Data Address'", "value": 1 }
           ]
         },
         {
           "type": "NumberSpinner",
           "name": "CommTimeout",
-          "caption": "Kommunikationsüberwachung (0 = aus)",
+          "caption": "Communication monitoring (0 = off)",
           "suffix": " min",
           "minimum": 0,
           "maximum": 1440
@@ -107,7 +107,7 @@
     {
       "type": "List",
       "name": "Registers",
-      "caption": "Registertabelle",
+      "caption": "Register table",
       "rowCount": 18,
       "add": true,
       "delete": true,
@@ -120,7 +120,7 @@
           "edit": { "type": "ValidationTextBox" }
         },
         {
-          "caption": "Bereich",
+          "caption": "Area",
           "name": "Area",
           "width": "100px",
           "add": 0,
@@ -133,14 +133,14 @@
           }
         },
         {
-          "caption": "Adresse",
+          "caption": "Address",
           "name": "Address",
           "width": "90px",
           "add": 0,
           "edit": { "type": "NumberSpinner", "minimum": 0, "maximum": 65535 }
         },
         {
-          "caption": "Datentyp",
+          "caption": "Data type",
           "name": "DataType",
           "width": "100px",
           "add": "uint16",
@@ -164,47 +164,47 @@
           "edit": { "type": "SelectVariable" }
         },
         {
-          "caption": "Wert",
+          "caption": "Value",
           "name": "CurrentValue",
           "width": "90px",
           "add": "–"
         },
         {
-          "caption": "Faktor",
+          "caption": "Factor",
           "name": "Factor",
           "width": "80px",
           "add": 1.0,
           "edit": { "type": "NumberSpinner", "digits": 6 }
         },
         {
-          "caption": "Festwert / Startwert",
+          "caption": "Fixed value / start value",
           "name": "Fixed",
           "width": "90px",
           "add": 0.0,
           "edit": { "type": "NumberSpinner", "digits": 3 }
         },
         {
-          "caption": "Schreiben",
+          "caption": "Write",
           "name": "Writable",
           "width": "190px",
           "add": 0,
           "edit": {
             "type": "Select",
             "options": [
-              { "caption": "Nein (nur lesen)", "value": 0 },
-              { "caption": "Ja - Aktion (RequestAction)", "value": 1 },
-              { "caption": "Ja - direkt (SetValue)", "value": 2 }
+              { "caption": "No (read only)", "value": 0 },
+              { "caption": "Yes - action (RequestAction)", "value": 1 },
+              { "caption": "Yes - direct (SetValue)", "value": 2 }
             ]
           }
         },
         {
-          "caption": "Empfangen",
+          "caption": "Received",
           "name": "LastWritten",
           "width": "100px",
           "add": "–"
         },
         {
-          "caption": "Abgefragt",
+          "caption": "Polled",
           "name": "LastRead",
           "width": "100px",
           "add": "–"
@@ -216,29 +216,29 @@
       "items": [
         {
           "type": "PopupButton",
-          "caption": "Vorlage laden...",
+          "caption": "Load template...",
           "popup": {
-        "caption": "Registervorlage laden",
+        "caption": "Load register template",
         "items": [
           {
             "type": "Label",
-            "caption": "Die Vorlage ersetzt den Inhalt der Registertabelle in der offenen Konfiguration und setzt die passende Word-Order. Die RPC-Vorlage aktiviert zusätzlich die RPC-Schnittstelle (Register 5000/5006/5008 mit Watchdog-Logik) und blendet deren Einstellungs-Panel ein. Gespeichert wird erst mit 'Änderungen übernehmen'."
+            "caption": "The template replaces the contents of the register table in the open configuration and sets the matching word order. The RPC template additionally enables the RPC interface (registers 5000/5006/5008 with watchdog logic) and shows its settings panel. Nothing is saved until you click 'Apply changes'."
           },
           {
             "type": "Select",
             "name": "TemplateSelect",
-            "caption": "Vorlage",
+            "caption": "Template",
             "value": "rpc",
             "options": [
-              { "caption": "Meteocontrol blue'Log RPC (Direktvermarktung)", "value": "rpc" },
-              { "caption": "SunSpec Wechselrichter dreiphasig (Model 1 + 113, float)", "value": "sunspec113" },
-              { "caption": "SunSpec Zähler dreiphasig (Model 1 + 213, float)", "value": "sunspec213" }
+              { "caption": "Meteocontrol blue'Log RPC (direct marketing)", "value": "rpc" },
+              { "caption": "SunSpec inverter, three-phase (Model 1 + 113, float)", "value": "sunspec113" },
+              { "caption": "SunSpec meter, three-phase (Model 1 + 213, float)", "value": "sunspec213" }
             ]
           }
         ],
         "buttons": [
           {
-            "caption": "In Tabelle laden",
+            "caption": "Load into table",
             "onClick": "echo MBSLV_LoadTemplate($id, $TemplateSelect);"
           }
         ]
@@ -246,64 +246,64 @@
         },
         {
           "type": "Button",
-          "caption": "Datenpunkte für unzugeordnete Register anlegen",
+          "caption": "Create data points for unassigned registers",
           "onClick": "echo MBSLV_CreateRowVariables($id, '');"
         }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "⏱ Timeout-Absicherung (optional)",
+      "caption": "⏱ Timeout protection (optional)",
       "expanded": false,
       "items": [
         {
           "type": "Label",
-          "caption": "Für einzelne schreibbare Register: Wird die 'Ziel-Adresse' so lange nicht mehr beschrieben, setzt das Modul automatisch den 'Rückfallwert' - unabhängig von der RPC-Vorlage, für JEDE Registertabellen-Zeile mit Schreiben ungleich 'Nein' nutzbar. 'Dauer'+'Einheit' gelten fest, außer es ist ein 'Quell-Register' (ungleich 0) eingetragen - dann liefert dessen AKTUELLER Wert die Dauer (z. B. weil der Master selbst eine Gültigkeitsdauer mitschreibt, wie Register 5006 bei Meteocontrol blue'Log). Die Zeit läuft erst ab dem ERSTEN echten Schreibzugriff - eine nie beschriebene Zeile läuft nie automatisch ab, ein Neustart der Instanz löst also keinen ungewollten Rückfall aus. Geprüft wird einmal pro Minute, genauer lohnt sich für eine Sicherheitsabsicherung nicht."
+          "caption": "For individual writable registers: if the 'Target address' is not written for that long, the module automatically sets the 'Fallback value' - independent of the RPC template, usable for EVERY register table row whose Write setting is not 'No'. 'Duration'+'Unit' apply as fixed values unless a 'Source register' (not 0) is entered - then its CURRENT value supplies the duration (e.g. because the master itself writes a validity period, like register 5006 on Meteocontrol blue'Log). The time only starts running with the FIRST real write access - a row that has never been written never expires automatically, so restarting the instance does not trigger an unwanted fallback. The check runs once per minute; being more precise is not worthwhile for a safety fallback."
         },
         {
           "type": "List",
           "name": "RegisterTimeouts",
-          "caption": "Zeitüberwachung",
+          "caption": "Time monitoring",
           "rowCount": 5,
           "add": true,
           "delete": true,
           "columns": [
             {
-              "caption": "Ziel-Adresse",
+              "caption": "Target address",
               "name": "Address",
               "width": "110px",
               "add": 0,
               "edit": { "type": "NumberSpinner", "minimum": 0, "maximum": 65535 }
             },
             {
-              "caption": "Dauer",
+              "caption": "Duration",
               "name": "Duration",
               "width": "90px",
               "add": 300,
               "edit": { "type": "NumberSpinner", "digits": 1 }
             },
             {
-              "caption": "Einheit",
+              "caption": "Unit",
               "name": "Unit",
               "width": "120px",
               "add": "s",
               "edit": {
                 "type": "Select",
                 "options": [
-                  { "caption": "Sekunden", "value": "s" },
-                  { "caption": "Minuten", "value": "min" }
+                  { "caption": "Seconds", "value": "s" },
+                  { "caption": "Minutes", "value": "min" }
                 ]
               }
             },
             {
-              "caption": "Quell-Register (0 = feste Dauer)",
+              "caption": "Source register (0 = fixed duration)",
               "name": "SourceAddress",
               "width": "220px",
               "add": 0,
               "edit": { "type": "NumberSpinner", "minimum": 0, "maximum": 65535 }
             },
             {
-              "caption": "Rückfallwert",
+              "caption": "Fallback value",
               "name": "Fallback",
               "width": "110px",
               "add": 0.0,
@@ -322,23 +322,23 @@
     {
       "type": "ExpansionPanel",
       "name": "RPCPanel",
-      "caption": "⚡ Meteocontrol RPC / Direktvermarktung",
+      "caption": "⚡ Meteocontrol RPC / direct marketing",
       "expanded": false,
       "items": [
         {
           "type": "Label",
-          "caption": "IPS übernimmt hier selbst die Rolle des Meteocontrol blue'Log - es wird KEIN echtes blue'Log-Gerät benötigt. Funktioniert mit jedem Direktvermarkter, der die blue'Log-RPC-Schnittstelle unterstützt (z. B. Next Kraftwerke); ein vorhandener echter blue'Log kann dahinter weiterbetrieben werden (Weiterleitung per Ereignis-Skript)."
+          "caption": "Symcon takes over the role of the Meteocontrol blue'Log here itself - NO real blue'Log device is required. Works with any direct marketer that supports the blue'Log RPC interface (e.g. Next Kraftwerke); an existing real blue'Log can continue to run behind it (forwarding via event script)."
         },
         {
           "type": "CheckBox",
           "name": "RPCEnabled",
-          "caption": "RPC-Schnittstelle (Register 5000/5006/5008) aktivieren",
+          "caption": "Enable RPC interface (registers 5000/5006/5008)",
           "onChange": "MBSLV_UIToggleRPC($id, $RPCEnabled);"
         },
         {
           "type": "Label",
           "name": "RPCHintInternal",
-          "caption": "Die Steuer-Register 5000 (Sollwert), 5002-5005, 5006 (Gültigkeitsdauer) und 5008 (Watchdog) verwaltet das Modul intern - sie erscheinen nicht in der Registertabelle. Zuordnung nach dem Laden der Vorlage: Die Istwert-Register (WR-Leistung, Netzleistung, P_AV) müssen MANUELL mit Variablen verknüpft werden; die Sollwert-Register 4/8/104/108 verknüpft der Vorlage-Button AUTOMATISCH mit 'Wirksamer DV-Sollwert', sobald die RPC-Variablen existieren (nach dem ersten 'Änderungen übernehmen' die Vorlage dafür einmal erneut laden)."
+          "caption": "The module manages the control registers 5000 (setpoint), 5002-5005, 5006 (validity period) and 5008 (watchdog) internally - they do not appear in the register table. Assignment after loading the template: the actual-value registers (inverter power, grid power, P_AV) must be linked to variables MANUALLY; the template button links the setpoint registers 4/8/104/108 AUTOMATICALLY to 'Effective direct marketing setpoint' as soon as the RPC variables exist (load the template once more after the first 'Apply changes' for this)."
         },
         {
           "type": "RowLayout",
@@ -347,7 +347,7 @@
             {
               "type": "NumberSpinner",
               "name": "RPCFallback",
-              "caption": "Rückfall-Sollwert nach Ablauf",
+              "caption": "Fallback setpoint after expiry",
               "digits": 1,
               "suffix": " %",
               "minimum": 0,
@@ -356,7 +356,7 @@
             {
               "type": "NumberSpinner",
               "name": "RPCDefaultValidTime",
-              "caption": "Standard-Gültigkeitsdauer",
+              "caption": "Default validity period",
               "digits": 0,
               "suffix": " min",
               "minimum": 1,
@@ -367,12 +367,12 @@
         {
           "type": "SelectScript",
           "name": "RPCForwardScript",
-          "caption": "Skript bei Sollwert-Ereignis (optional, z. B. Weiterleitung an blue'Log)"
+          "caption": "Script on setpoint event (optional, e.g. forwarding to blue'Log)"
         },
         {
           "type": "Label",
           "name": "RPCHintScript",
-          "caption": "Das Skript erhält $_IPS['Action'] (setpoint | watchdog | expired), $_IPS['Setpoint'], $_IPS['Valid'] und $_IPS['InstanceID']. Alternativ einfach ein Ereignis auf die Variable 'Wirksamer DV-Sollwert' legen."
+          "caption": "The script receives $_IPS['Action'] (setpoint | watchdog | expired), $_IPS['Setpoint'], $_IPS['Valid'] and $_IPS['InstanceID']. Alternatively, simply put an event on the variable 'Effective direct marketing setpoint'."
         }
       ]
     }
@@ -383,23 +383,23 @@
       "items": [
         {
           "type": "Label",
-          "caption": "Nach einem Modul-Update übernimmt die Instanz neue Variablen/Zeitgeber erst nach 'Änderungen übernehmen' - dieser Button erzwingt das ohne Formularänderung."
+          "caption": "After a module update, the instance only adopts new variables/timers after 'Apply changes' - this button forces that without changing the form."
         },
         {
           "type": "Button",
-          "caption": "🔄 Übernehmen erzwingen (ohne Formularänderung)",
-          "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';"
+          "caption": "🔄 Force apply (without form change)",
+          "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() executed.';"
         }
       ]
     },
     {
       "type": "ExpansionPanel",
-      "caption": "🧩 Weitere Schnittstellen anlegen",
+      "caption": "🧩 Create additional interfaces",
       "expanded": false,
       "items": [
         {
           "type": "Label",
-          "caption": "Legt für jeden angegebenen Port eine Kopie dieser Instanz samt Server Socket an (Kopie der zuletzt gespeicherten Konfiguration; bereits belegte Ports werden übersprungen). Beispiel für mehrere Gegenstellen mit je eigenem Port: erst diese Instanz fertig konfigurieren und übernehmen, dann z. B. '502-505' eintragen."
+          "caption": "Creates a copy of this instance including a Server Socket for each port given (a copy of the last saved configuration; ports already in use are skipped). Example for several remote devices, each with its own port: first finish configuring this instance and apply it, then enter e.g. '502-505'."
         },
         {
           "type": "RowLayout",
@@ -407,13 +407,13 @@
             {
               "type": "ValidationTextBox",
               "name": "ClonePorts",
-              "caption": "Ports (z. B. '502-505' oder '502,503,1502')",
+              "caption": "Ports (e.g. '502-505' or '502,503,1502')",
               "value": ""
             },
             {
               "type": "Button",
-              "caption": "Instanzen anlegen",
-              "confirm": "Für jeden angegebenen Port wird eine neue Instanz samt Server Socket angelegt und der Port sofort geöffnet. Kopiert wird die zuletzt gespeicherte Konfiguration dieser Instanz; diese selbst bleibt unverändert. Fortfahren?",
+              "caption": "Create instances",
+              "confirm": "A new instance including a Server Socket is created for each port given, and the port is opened immediately. The last saved configuration of this instance is copied; this instance itself remains unchanged. Continue?",
               "onClick": "echo MBSLV_CreateSiblings($id, $ClonePorts);"
             }
           ]
@@ -425,12 +425,12 @@
     {
       "code": 201,
       "icon": "error",
-      "caption": "Server Socket nicht aktiv - Port prüfen und Socket öffnen"
+      "caption": "Server Socket not active - check the port and open the socket"
     },
     {
       "code": 202,
       "icon": "error",
-      "caption": "Keine Modbus-Anfragen innerhalb der Überwachungszeit"
+      "caption": "No Modbus requests within the monitoring time"
     }
   ]
 }

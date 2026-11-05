@@ -33,7 +33,7 @@ class ModbusTCPServer extends IPSModule
     // Datenpaket "Erweitert (Socket)": Empfang vom Server Socket
     // Formular-Konvention (SUITE.md "Einheitliche Formular-Optik"): News-Panel je Version
     // einmalig bestätigbar, Lizenz-/Spendenhinweis fest verdrahtet
-    private const NEWS_VERSION = '1.12';
+    private const NEWS_VERSION = '1.13';
     private const LICENSE_URL = 'https://github.com/DG65/NRGModbusServer/blob/beta/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
     // Modul-Thread im Symcon-Forum (Kurzform mit Themen-ID, Discourse leitet auf die aktuelle Adresse um -
@@ -58,6 +58,43 @@ class ModbusTCPServer extends IPSModule
     // am Ende gebuendelt in die RegisterActivity-Attribut-Variable geschrieben
     // (ein Schreibzugriff je Empfangs-Batch statt je einzelnem Register)
     private array $pendingActivity = [];
+
+
+    /** @var array<string,string> je Prozess gemerkte Übersetzungen (Translate() liest bei jedem Aufruf die locale.json, SUITE.md Stolperstein 24) */
+    private static array $translations = [];
+
+    /**
+     * Text übersetzen. Quelltexte stehen englisch im Code und in der form.json, die deutsche
+     * Fassung in locale.json. Mit Argumenten wie sprintf (Platzhalter %s/%d, ein Prozentzeichen als %%).
+     */
+    private function t(string $text, ...$args): string
+    {
+        if (!isset(self::$translations[$text])) {
+            self::$translations[$text] = (string) $this->Translate($text);
+        }
+        $translated = self::$translations[$text];
+        if ($args === []) {
+            return $translated;
+        }
+        $result = @vsprintf($translated, array_map(fn ($a) => is_scalar($a) || $a === null ? (string) $a : (string) json_encode($a), $args));
+        return $result === false ? $translated : $result;
+    }
+
+    /** Übersetzt in einem Formular alle Anzeigetexte (caption, confirm, label); Kommandos und Namen bleiben unverändert. */
+    private function translateForm($node)
+    {
+        if (!is_array($node)) {
+            return $node;
+        }
+        foreach ($node as $key => $value) {
+            if (is_string($key) && in_array($key, ['caption', 'confirm', 'label'], true) && is_string($value)) {
+                $node[$key] = $value === '' ? $value : $this->t($value);
+            } elseif (is_array($value)) {
+                $node[$key] = $this->translateForm($value);
+            }
+        }
+        return $node;
+    }
 
     public function Create()
     {
@@ -131,16 +168,16 @@ class ModbusTCPServer extends IPSModule
         $this->ensureProfiles();
 
         // Sichtbare Kommunikationsanzeige, unabhängig vom RPC-Profil
-        $this->registerVarOnce('int', 'LastRequest', 'Letzte Modbus-Anfrage', '~UnixTimestamp', 5);
+        $this->registerVarOnce('int', 'LastRequest', $this->t('Last Modbus request'), '~UnixTimestamp', 5);
 
         if ((bool) $this->ReadPropertyBoolean('RPCEnabled')) {
             // nur bei echter Neuanlage registrieren (SUITE.md-Stolperstein 3)
-            $this->registerVarOnce('float', 'Setpoint', 'DV-Sollwertvorgabe', 'MBSLV.Percent', 10);
-            $this->registerVarOnce('bool', 'SetpointValid', 'DV-Vorgabe gültig', '~Switch', 20);
-            $this->registerVarOnce('int', 'ValidUntil', 'DV-Vorgabe gültig bis', '~UnixTimestamp', 30);
-            $this->registerVarOnce('float', 'Effective', 'Wirksamer DV-Sollwert', 'MBSLV.Percent', 40);
-            $this->registerVarOnce('float', 'ValidTime', 'Gültigkeitsdauer', 'MBSLV.Minutes', 50);
-            $this->registerVarOnce('int', 'LastWrite', 'Letzte DV-Vorgabe', '~UnixTimestamp', 60);
+            $this->registerVarOnce('float', 'Setpoint', $this->t('Direct marketing setpoint'), 'MBSLV.Percent', 10);
+            $this->registerVarOnce('bool', 'SetpointValid', $this->t('Direct marketing setpoint valid'), '~Switch', 20);
+            $this->registerVarOnce('int', 'ValidUntil', $this->t('Direct marketing setpoint valid until'), '~UnixTimestamp', 30);
+            $this->registerVarOnce('float', 'Effective', $this->t('Effective direct marketing setpoint'), 'MBSLV.Percent', 40);
+            $this->registerVarOnce('float', 'ValidTime', $this->t('Validity period'), 'MBSLV.Minutes', 50);
+            $this->registerVarOnce('int', 'LastWrite', $this->t('Last direct marketing setpoint'), '~UnixTimestamp', 60);
 
             if ($this->GetValue('ValidTime') < 1) {
                 $this->SetValue('ValidTime', (float) $this->ReadPropertyFloat('RPCDefaultValidTime'));
@@ -195,12 +232,12 @@ class ModbusTCPServer extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
-            'caption' => '👋  Wozu dieses Modul?',
+            'caption' => '👋  What is this module for?',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Dieses Modul macht IP-Symcon zum Modbus-TCP-Server: Externe Geräte und Systeme (Modbus-Clients, z. B. ein Leitsystem, ein Energiemanagement oder ein Direktvermarkter) können darüber frei gewählte Symcon-Variablen lesen und beschreiben.'],
-                ['type' => 'Label', 'caption' => 'Der Nutzen: Werte aus Symcon lassen sich an Systeme weitergeben, die nur Modbus sprechen, und Sollwerte von dort entgegennehmen - oder ein bekanntes Modbus-Gerät (z. B. einen Zähler oder Datenlogger) nachbilden, das eine Gegenstelle erwartet.'],
-                ['type' => 'Label', 'caption' => 'Möchten Sie stattdessen Werte von Modbus-Geräten einlesen? Dafür gibt es im NRG-Stack InverterHub (Wechselrichter), MeterHub (Zähler) und ChargerHub (Wallboxen).'],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckPurposeIntro($id);'],
+                ['type' => 'Label', 'caption' => 'This module turns Symcon into a Modbus TCP server: external devices and systems (Modbus clients, e.g. a control system, an energy management system or a direct marketer) can read and write freely chosen Symcon variables through it.'],
+                ['type' => 'Label', 'caption' => 'The benefit: values from Symcon can be passed on to systems that only speak Modbus, and setpoints can be received from them - or a known Modbus device (e.g. a meter or data logger) can be emulated for a remote side that expects one.'],
+                ['type' => 'Label', 'caption' => 'Would you like to read values from Modbus devices instead? For that, the NRG-Stack offers InverterHub (inverters), MeterHub (meters) and ChargerHub (wallboxes).'],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'MBSLV_AckPurposeIntro($id);'],
             ],
         ];
     }
@@ -220,14 +257,11 @@ class ModbusTCPServer extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'expanded' => true,
-            'caption' => '🆕  Neu in Version ' . self::NEWS_VERSION,
+            'caption' => $this->t('🆕  New in version %s', self::NEWS_VERSION),
             'items' => [
-                ['type' => 'Label', 'caption' => '• 🆕 Speicherzellen: Eine beschreibbare Registerzeile ohne Variable merkt sich den vom Client geschriebenen Wert und liefert ihn beim Lesen zurück - wie ein klassischer Modbus-Server (z. B. ModRSsim2). Der Festwert ist der Startwert. Praktisch für Sollwerte, die ein anderes Gerät, etwa ein ModBus-Device in derselben Installation, von diesem Server zurückliest; dessen Variablen sind schreibgeschützt und lassen sich nicht direkt beschreiben.'],
-                ['type' => 'Label', 'caption' => '• 🔧 Neuer Name: „Modbus-TCP-Server" statt „Slave", passend zur Modbus-Spezifikation (Client/Server). Bestehende Instanzen bleiben unverändert zugeordnet, nur beim Anlegen einer neuen Instanz heißt der Eintrag „NRG-Stack Modbus TCP Server".'],
-                ['type' => 'Label', 'caption' => '• 🔧 „Instanzen anlegen" (weitere Schnittstellen) fragt jetzt vorher nach und nennt, dass die Ports sofort geöffnet werden.'],
-                ['type' => 'Label', 'caption' => '• 💬 Neuer Feedback-Hinweis unten im Formular: Rückmeldungen, Fragen und Fehlermeldungen sind willkommen, am liebsten im Thread im Symcon-Forum.'],
-                ['type' => 'Label', 'caption' => '• 🔗 Bei mehreren Instanzen: „Wozu dieses Modul?", „Was ist neu?" und der Feedback-Hinweis müssen nur einmal weggeklickt werden - ein Klick gilt für alle Instanzen dieses Moduls.'],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckNews($id);'],
+                ['type' => 'Label', 'caption' => '• 🌐 Bilingual: the module is now fully available in German and English (form, messages, variable names, templates). The language follows the Symcon setting.'],
+                ['type' => 'Label', 'caption' => '• ℹ️ Variables and register names that already exist keep their previous (German) names; new instances use the language set in Symcon.'],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'MBSLV_AckNews($id);'],
             ],
         ];
     }
@@ -247,11 +281,11 @@ class ModbusTCPServer extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => '💬  Feedback im Symcon-Forum',
+            'caption' => '💬  Feedback in the Symcon forum',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Rückmeldungen, Fragen und Fehlermeldungen zu diesem Modul sind ausdrücklich willkommen - am liebsten im Thread im Symcon-Forum.'],
-                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FEEDBACK_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'MBSLV_AckForumHint($id);'],
+                ['type' => 'Label', 'caption' => 'Feedback, questions and bug reports about this module are explicitly welcome - preferably in the thread in the Symcon forum.'],
+                ['type' => 'Button', 'caption' => 'To the forum thread', 'onClick' => "echo '" . self::FEEDBACK_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'MBSLV_AckForumHint($id);'],
             ],
         ];
     }
@@ -358,14 +392,14 @@ class ModbusTCPServer extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '🧡  Über dieses Modul',
+            'caption' => '🧡  About this module',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
-                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
-                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
-                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
-                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
-                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Born out of real enthusiasm for my own setup — and quite a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.'],
+                ['type' => 'Label', 'caption' => 'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use requires a separate license from the rights holder.'],
+                ['type' => 'Button', 'caption' => 'View license text', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'You like the module and would like to leave something anyway? I am happy about a small donation — completely voluntary, nothing required in return.'],
+                ['type' => 'Button', 'caption' => '☕  Donate via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
             ],
         ];
     }
@@ -397,12 +431,12 @@ class ModbusTCPServer extends IPSModule
 
         if ($type === 1) { // Verbindung hergestellt
             $this->SetBuffer($key, '');
-            $this->SendDebug('Verbindung', sprintf('%s:%d verbunden', $ip, $port), 0);
+            $this->SendDebug($this->t('Connection'), $this->t('%s:%d connected', $ip, $port), 0);
             return '';
         }
         if ($type === 2) { // Verbindung beendet
             $this->SetBuffer($key, '');
-            $this->SendDebug('Verbindung', sprintf('%s:%d getrennt', $ip, $port), 0);
+            $this->SendDebug($this->t('Connection'), $this->t('%s:%d disconnected', $ip, $port), 0);
             return '';
         }
 
@@ -477,7 +511,7 @@ class ModbusTCPServer extends IPSModule
         $fallback = (float) $this->ReadPropertyFloat('RPCFallback');
         $this->SetValue('SetpointValid', false);
         $this->SetValue('Effective', $fallback);
-        $this->SendDebug('RPC', sprintf('Sollwertvorgabe abgelaufen - Rückfall auf %.1f %%', $fallback), 0);
+        $this->SendDebug('RPC', $this->t('Setpoint expired - falling back to %.1f %%', $fallback), 0);
         $this->runForwardScript('expired', $fallback);
     }
 
@@ -495,7 +529,7 @@ class ModbusTCPServer extends IPSModule
         foreach ($form['elements'] as &$element) {
             if (($element['name'] ?? '') === 'DocPanel') {
                 $version = $this->libraryVersion();
-                array_unshift($element['items'], ['type' => 'Label', 'caption' => 'ModbusServer' . ($version !== '' ? ' ' . $version : '') . ' - Stand dieser Anleitung.']);
+                array_unshift($element['items'], ['type' => 'Label', 'caption' => $version !== '' ? $this->t('ModbusServer %s - version of this documentation.', $version) : $this->t('ModbusServer - version of this documentation.')]);
             }
             if (($element['name'] ?? '') === 'PortInfo') {
                 $element['caption'] = $this->portInfoCaption();
@@ -519,7 +553,7 @@ class ModbusTCPServer extends IPSModule
             $form['elements'],
             [$this->ForumHint(), $this->LicenseHint()]
         )));
-        return json_encode($form);
+        return json_encode($this->translateForm($form));
     }
 
     /**
@@ -591,17 +625,17 @@ class ModbusTCPServer extends IPSModule
             $key = (string) $address;
             $targetRow = self::findRegisterRow($registers, $address);
             if ($targetRow === null) {
-                $rule['Status'] = '⛔ Adresse nicht in der Registertabelle';
+                $rule['Status'] = $this->t('⛔ Address not in the register table');
             } elseif (self::normalizeWriteMode($targetRow['Writable'] ?? 0) === self::WRITE_NONE) {
-                $rule['Status'] = '⛔ Register ist auf "nur lesen" gestellt';
+                $rule['Status'] = $this->t('⛔ Register is set to "read only"');
             } else {
                 $lastWrite = (int) ($activity[$key]['w'] ?? 0);
                 if ($lastWrite <= 0) {
-                    $rule['Status'] = '– noch nie beschrieben';
+                    $rule['Status'] = $this->t('– never written');
                 } elseif (isset($applied[$key])) {
-                    $rule['Status'] = '⚠️ im Rückfall (zuletzt beschrieben ' . date('H:i:s', $lastWrite) . ')';
+                    $rule['Status'] = $this->t('⚠️ in fallback (last written %s)', date('H:i:s', $lastWrite));
                 } else {
-                    $rule['Status'] = '✅ aktuell (zuletzt beschrieben ' . date('H:i:s', $lastWrite) . ')';
+                    $rule['Status'] = $this->t('✅ current (last written %s)', date('H:i:s', $lastWrite));
                 }
             }
         }
@@ -654,24 +688,24 @@ class ModbusTCPServer extends IPSModule
     {
         $parent = IPS_GetInstance($this->InstanceID)['ConnectionID'];
         if ($parent === 0) {
-            return 'ℹ️ Kein Server Socket verbunden.';
+            return $this->t('ℹ️ No Server Socket connected.');
         }
         $port = (int) IPS_GetProperty($parent, 'Port');
         if (!IPS_GetProperty($parent, 'Open')) {
-            return sprintf('ℹ️ Server Socket ist geschlossen (Port %d) - noch nicht aktiv.', $port);
+            return $this->t('ℹ️ Server Socket is closed (port %d) - not active yet.', $port);
         }
         if (IPS_GetInstance($parent)['InstanceStatus'] !== IS_ACTIVE) {
-            return sprintf('❌ Server Socket nicht aktiv (Port %d).', $port);
+            return $this->t('❌ Server Socket not active (port %d).', $port);
         }
         $lastRequestID = (int) @$this->GetIDForIdent('LastRequest');
         $last = $lastRequestID > 0 ? (int) GetValue($lastRequestID) : 0;
         $base = $last === 0
-            ? sprintf('⚠️ Erreichbar auf Port %d (noch keine Anfrage empfangen).', $port)
-            : sprintf('✅ Erreichbar auf Port %d (zuletzt %s Uhr).', $port, date('H:i:s', $last));
+            ? $this->t('⚠️ Reachable on port %d (no request received yet).', $port)
+            : $this->t('✅ Reachable on port %d (last request at %s).', $port, date('H:i:s', $last));
 
         $fallbackCount = $this->activeTimeoutFallbackCount();
         if ($fallbackCount > 0) {
-            $base .= sprintf(' ⚠️ %d Register auf Timeout-Rückfallwert.', $fallbackCount);
+            $base .= $this->t(' ⚠️ %d register(s) at the timeout fallback value.', $fallbackCount);
         }
         return $base;
     }
@@ -717,24 +751,24 @@ class ModbusTCPServer extends IPSModule
                 $this->UpdateFormField('RPCPanel', 'expanded', true);
                 $this->UIToggleRPC(true);
                 if ($effective > 0) {
-                    return "✅ Vorlage geladen (Unit-ID 10, Word-Order CDAB gesetzt, RPC-Schnittstelle aktiviert - Einstellungen siehe eingeblendetes Panel). Bitte die Istwert-Variablen (WR-Leistung, Netzleistung, P_AV) zuordnen und mit 'Änderungen übernehmen' speichern.";
+                    return $this->t('✅ Template loaded (unit ID 10, word order CDAB set, RPC interface enabled - settings in the panel that has appeared). Please assign the actual-value variables (inverter power, grid power, P_AV) and save with \'Apply changes\'.');
                 }
-                return "✅ Vorlage geladen (Unit-ID 10, Word-Order CDAB gesetzt, RPC-Schnittstelle aktiviert - Einstellungen siehe eingeblendetes Panel). Nach 'Änderungen übernehmen' die Vorlage erneut laden, damit die Sollwert-Register (4/8/104/108) automatisch mit der Variable 'Wirksamer DV-Sollwert' verknüpft werden. Istwert-Variablen bitte manuell zuordnen.";
+                return $this->t('✅ Template loaded (unit ID 10, word order CDAB set, RPC interface enabled - settings in the panel that has appeared). After \'Apply changes\', load the template again so that the setpoint registers (4/8/104/108) are linked automatically to the variable \'Effective direct marketing setpoint\'. Please assign the actual-value variables manually.');
 
             case 'sunspec113':
                 $this->UpdateFormField('Registers', 'values', json_encode($this->templateRowsSunSpec113()));
                 $this->UpdateFormField('SwapWords', 'value', false);
                 $this->UpdateFormField('CheckUnitID', 'value', true);
-                return "✅ SunSpec-Vorlage geladen (Word-Order ABCD gesetzt): Common Model 1 + Wechselrichter Model 113 (dreiphasig, float32) ab Basisregister 40000. Bitte Messwert-Variablen zuordnen, Unit-ID an die Gegenstelle anpassen (üblich 1 oder 126) und mit 'Änderungen übernehmen' speichern. Hinweis: Die Textfelder des Common Models (Hersteller/Modell/Seriennummer) liefern 0 - Strings unterstützt das Modul nicht.";
+                return $this->t('✅ SunSpec template loaded (word order ABCD set): Common Model 1 + inverter Model 113 (three-phase, float32) from base register 40000. Please assign measurement variables, adjust the unit ID to the remote side (usually 1 or 126) and save with \'Apply changes\'. Note: the text fields of the Common Model (manufacturer/model/serial number) return 0 - the module does not support strings.');
 
             case 'sunspec213':
                 $this->UpdateFormField('Registers', 'values', json_encode($this->templateRowsSunSpec213()));
                 $this->UpdateFormField('SwapWords', 'value', false);
                 $this->UpdateFormField('CheckUnitID', 'value', true);
-                return "✅ SunSpec-Vorlage geladen (Word-Order ABCD gesetzt): Common Model 1 + Zähler Model 213 (dreiphasig, float32) ab Basisregister 40000 - damit kann IPS z. B. gegenüber Wallbox-/EMS-Systemen (evcc, openWB u. a.) als SunSpec-Netzzähler auftreten. Wichtigste Zuordnungen: W (Wirkleistung, Vorzeichen: Export positiv), TotWhImp/TotWhExp (Energiezähler). Nicht zugeordnete Detailpunkte liefern 0. Unit-ID an die Gegenstelle anpassen und mit 'Änderungen übernehmen' speichern.";
+                return $this->t('✅ SunSpec template loaded (word order ABCD set): Common Model 1 + meter Model 213 (three-phase, float32) from base register 40000 - this lets Symcon appear as a SunSpec grid meter to wallbox/EMS systems (evcc, openWB etc.). Most important assignments: W (active power, sign: export positive), TotWhImp/TotWhExp (energy counters). Unassigned detail points return 0. Adjust the unit ID to the remote side and save with \'Apply changes\'.');
 
             default:
-                return '⛔ Unbekannte Vorlage: ' . $Template;
+                return $this->t('⛔ Unknown template: %s', $Template);
         }
     }
 
@@ -767,7 +801,7 @@ class ModbusTCPServer extends IPSModule
         // nicht übernommene Zeile bekommt ihren Datenpunkt deshalb erst nach "Übernehmen".
         $rows = json_decode($this->ReadPropertyString('Registers'), true);
         if (!is_array($rows) || $rows === []) {
-            return '⚠️ Die Registertabelle ist leer - zuerst Zeilen anlegen, übernehmen und dann diesen Button erneut klicken.';
+            return $this->t('⚠️ The register table is empty - first create rows, apply, then click this button again.');
         }
         // Absicherung: eine gespeicherte Konfiguration ist immer ein echtes Array, das ist nur
         // Sicherheitsnetz gegen eine von Hand beschädigte Property.
@@ -809,11 +843,11 @@ class ModbusTCPServer extends IPSModule
         $this->UpdateFormField('Registers', 'values', json_encode($this->registersForForm($rows)));
 
         $icon = ($created + $reused) > 0 ? '✅' : '⚠️';
-        $message = sprintf('%s %d Datenpunkt(e) angelegt, %d wiederverwendet und in die Tabelle eingetragen.', $icon, $created, $reused);
+        $message = $this->t('%s %d data point(s) created, %d reused and entered into the table.', $icon, $created, $reused);
         if ($skipped > 0) {
-            $message .= sprintf(' %d Zeile(n) mit Festwert wurden übersprungen.', $skipped);
+            $message .= $this->t(' %d row(s) with a fixed value were skipped.', $skipped);
         }
-        $message .= " Mit 'Änderungen übernehmen' speichern. Die Datenpunkte gehören zur Instanz und können per Ereignis/Skript aus beliebigen Quellen befüllt werden.";
+        $message .= ' ' . $this->t("Save with 'Apply changes'. The data points belong to the instance and can be filled from any source via event/script.");
         return $message;
     }
 
@@ -840,7 +874,7 @@ class ModbusTCPServer extends IPSModule
         }
         $ports = array_values(array_unique(array_filter($ports, fn ($p) => $p > 0 && $p <= 65535)));
         if ($ports === []) {
-            return "⚠️ Keine gültigen Ports angegeben. Beispiele: '502-505' oder '502,503,1502'.";
+            return $this->t('⚠️ No valid ports given. Examples: \'502-505\' or \'502,503,1502\'.');
         }
 
         // bereits belegte Ports aller ModbusTCPServer-Instanzen ermitteln
@@ -894,12 +928,12 @@ class ModbusTCPServer extends IPSModule
         $icon = $created !== [] ? '✅' : '⚠️';
         $message = [];
         if ($created !== []) {
-            $message[] = 'Angelegt: Port ' . implode(', ', $created) . '.';
+            $message[] = $this->t('Created: port %s.', implode(', ', $created));
         }
         if ($skipped !== []) {
-            $message[] = 'Übersprungen (bereits belegt): Port ' . implode(', ', $skipped) . '.';
+            $message[] = $this->t('Skipped (already in use): port %s.', implode(', ', $skipped));
         }
-        $message[] = 'Hinweis: Kopiert wurde die zuletzt GESPEICHERTE Konfiguration dieser Instanz.';
+        $message[] = $this->t('Note: the last SAVED configuration of this instance was copied.');
         return $icon . ' ' . implode("\n", $message);
     }
 
@@ -1008,11 +1042,11 @@ class ModbusTCPServer extends IPSModule
 
             $targetRow = self::findRegisterRow($registers, $address);
             if ($targetRow === null) {
-                $this->SendDebug('Timeout', sprintf('Register %d: keine passende Zeile in der Registertabelle', $address), 0);
+                $this->SendDebug('Timeout', $this->t('Register %d: no matching row in the register table', $address), 0);
                 continue;
             }
             $fallback = (float) ($rule['Fallback'] ?? 0);
-            $this->SendDebug('Timeout', sprintf('Register %d: %.0f s ohne Schreibzugriff - setze Rückfallwert %.3f', $address, $seconds, $fallback), 0);
+            $this->SendDebug('Timeout', $this->t('Register %d: %.0f s without write access - setting fallback value %.3f', $address, $seconds, $fallback), 0);
             $this->applyValueToTarget(self::normalizeGenericRow($targetRow), $fallback);
             $applied[$key] = true;
             $changed = true;
@@ -1049,7 +1083,8 @@ class ModbusTCPServer extends IPSModule
     private function formatCurrentValue(float $value): string
     {
         // number_format statt sprintf: sprintf folgt der Locale (deutsch: Komma), dann bliebe "100," übrig
-        $text = rtrim(rtrim(number_format(round($value, 4), 4, ',', ''), '0'), ',');
+        $decimal = $this->t('.');
+        $text = rtrim(rtrim(number_format(round($value, 4), 4, $decimal, ''), '0'), $decimal);
         return $text === '' || $text === '-' ? '0' : $text;
     }
 
@@ -1153,16 +1188,16 @@ class ModbusTCPServer extends IPSModule
         $rows = [];
         foreach ([['float32', 0], ['int32', 100]] as [$type, $base]) {
             $suffix = $base === 0 ? '' : ', int32';
-            $rows[] = $this->templateRow($base + 0, $type, "PPC_P_AC_INV - Summe WR-Wirkleistung (W$suffix)");
-            $rows[] = $this->templateRow($base + 2, $type, "PPC_P_AC - Ist-Wirkleistung Netzanalysator (W$suffix)");
-            $rows[] = $this->templateRow($base + 4, $type, "PPC_P_SET_REL - aktuell gültiger Sollwert (%$suffix)", $effective);
-            $rows[] = $this->templateRow($base + 6, $type, "PPC_P_SET_GRIDOP_REL - Sollwert Netzbetreiber (%$suffix)", 0, 100.0);
-            $rows[] = $this->templateRow($base + 8, $type, "PPC_P_SET_RPC_REL - Sollwert Direktvermarkter (%$suffix)", $effective);
-            $rows[] = $this->templateRow($base + 10, $type, "PPC_P_AC_GRIDOP_MAX - max. Leistung Netzbetreiber (W$suffix)");
-            $rows[] = $this->templateRow($base + 12, $type, "PPC_P_AC_RPC_MAX - max. Leistung Dritte (W$suffix)");
-            $rows[] = $this->templateRow($base + 14, $type, "PPC_P_SET_MODUS - Regelmodus (5 = RPC$suffix)", 0, 5.0);
+            $rows[] = $this->templateRow($base + 0, $type, $this->t('PPC_P_AC_INV - sum of inverter active power') . " (W$suffix)");
+            $rows[] = $this->templateRow($base + 2, $type, $this->t('PPC_P_AC - actual active power at the grid analyzer') . " (W$suffix)");
+            $rows[] = $this->templateRow($base + 4, $type, $this->t('PPC_P_SET_REL - currently valid setpoint') . " (%$suffix)", $effective);
+            $rows[] = $this->templateRow($base + 6, $type, $this->t('PPC_P_SET_GRIDOP_REL - setpoint grid operator') . " (%$suffix)", 0, 100.0);
+            $rows[] = $this->templateRow($base + 8, $type, $this->t('PPC_P_SET_RPC_REL - setpoint direct marketer') . " (%$suffix)", $effective);
+            $rows[] = $this->templateRow($base + 10, $type, $this->t('PPC_P_AC_GRIDOP_MAX - max. power grid operator') . " (W$suffix)");
+            $rows[] = $this->templateRow($base + 12, $type, $this->t('PPC_P_AC_RPC_MAX - max. power third party') . " (W$suffix)");
+            $rows[] = $this->templateRow($base + 14, $type, $this->t('PPC_P_SET_MODUS - control mode') . " (5 = RPC$suffix)", 0, 5.0);
         }
-        $rows[] = $this->templateRow(4000, 'float32', 'PPC_P_AV - vereinbarte Anschlusswirkleistung (W)');
+        $rows[] = $this->templateRow(4000, 'float32', $this->t('PPC_P_AV - agreed connection active power (W)'));
         return $rows;
     }
 
@@ -1174,47 +1209,47 @@ class ModbusTCPServer extends IPSModule
     private function templateRowsSunSpec113(): array
     {
         $rows = [
-            $this->templateRow(40000, 'uint32', 'SunSpec-Kennung "SunS"', 0, 1400204883.0),
+            $this->templateRow(40000, 'uint32', $this->t('SunSpec identifier "SunS"'), 0, 1400204883.0),
             $this->templateRow(40002, 'uint16', 'Common Model - ID', 0, 1.0),
-            $this->templateRow(40003, 'uint16', 'Common Model - Länge', 0, 66.0),
-            $this->templateRow(40070, 'uint16', 'Model 113 - ID (WR dreiphasig, float)', 0, 113.0),
-            $this->templateRow(40071, 'uint16', 'Model 113 - Länge', 0, 60.0)
+            $this->templateRow(40003, 'uint16', $this->t('Common Model - length'), 0, 66.0),
+            $this->templateRow(40070, 'uint16', $this->t('Model 113 - ID (inverter three-phase, float)'), 0, 113.0),
+            $this->templateRow(40071, 'uint16', $this->t('Model 113 - length'), 0, 60.0)
         ];
         $points = [
-            [40072, 'A - AC-Strom gesamt (A)'],
-            [40074, 'AphA - AC-Strom L1 (A)'],
-            [40076, 'AphB - AC-Strom L2 (A)'],
-            [40078, 'AphC - AC-Strom L3 (A)'],
-            [40080, 'PPVphAB - Spannung L1-L2 (V)'],
-            [40082, 'PPVphBC - Spannung L2-L3 (V)'],
-            [40084, 'PPVphCA - Spannung L3-L1 (V)'],
-            [40086, 'PhVphA - Spannung L1-N (V)'],
-            [40088, 'PhVphB - Spannung L2-N (V)'],
-            [40090, 'PhVphC - Spannung L3-N (V)'],
-            [40092, 'W - AC-Wirkleistung (W)'],
-            [40094, 'Hz - Netzfrequenz (Hz)'],
-            [40096, 'VA - Scheinleistung (VA)'],
-            [40098, 'VAr - Blindleistung (var)'],
-            [40100, 'PF - Leistungsfaktor'],
-            [40102, 'WH - Energieertrag gesamt (Wh)'],
-            [40104, 'DCA - DC-Strom (A)'],
-            [40106, 'DCV - DC-Spannung (V)'],
-            [40108, 'DCW - DC-Leistung (W)'],
-            [40110, 'TmpCab - Temperatur Gehäuse (°C)'],
-            [40112, 'TmpSnk - Temperatur Kühlkörper (°C)'],
-            [40114, 'TmpTrns - Temperatur Trafo (°C)'],
-            [40116, 'TmpOt - Temperatur sonstige (°C)']
+            [40072, 'A - AC current total (A)'],
+            [40074, 'AphA - AC current L1 (A)'],
+            [40076, 'AphB - AC current L2 (A)'],
+            [40078, 'AphC - AC current L3 (A)'],
+            [40080, 'PPVphAB - voltage L1-L2 (V)'],
+            [40082, 'PPVphBC - voltage L2-L3 (V)'],
+            [40084, 'PPVphCA - voltage L3-L1 (V)'],
+            [40086, 'PhVphA - voltage L1-N (V)'],
+            [40088, 'PhVphB - voltage L2-N (V)'],
+            [40090, 'PhVphC - voltage L3-N (V)'],
+            [40092, 'W - AC active power (W)'],
+            [40094, 'Hz - grid frequency (Hz)'],
+            [40096, 'VA - apparent power (VA)'],
+            [40098, 'VAr - reactive power (var)'],
+            [40100, 'PF - power factor'],
+            [40102, 'WH - total energy yield (Wh)'],
+            [40104, 'DCA - DC current (A)'],
+            [40106, 'DCV - DC voltage (V)'],
+            [40108, 'DCW - DC power (W)'],
+            [40110, 'TmpCab - cabinet temperature (°C)'],
+            [40112, 'TmpSnk - heat sink temperature (°C)'],
+            [40114, 'TmpTrns - transformer temperature (°C)'],
+            [40116, 'TmpOt - other temperature (°C)']
         ];
         foreach ($points as [$addr, $name]) {
-            $rows[] = $this->templateRow($addr, 'float32', $name);
+            $rows[] = $this->templateRow($addr, 'float32', $this->t($name));
         }
-        $rows[] = $this->templateRow(40118, 'uint16', 'St - Betriebszustand (4 = MPPT/Einspeisung)', 0, 4.0);
-        $rows[] = $this->templateRow(40119, 'uint16', 'StVnd - Betriebszustand herstellerspezifisch', 0, 0.0);
+        $rows[] = $this->templateRow(40118, 'uint16', $this->t('St - operating state (4 = MPPT/feed-in)'), 0, 4.0);
+        $rows[] = $this->templateRow(40119, 'uint16', $this->t('StVnd - operating state, vendor-specific'), 0, 0.0);
         foreach ([[40120, 'Evt1'], [40122, 'Evt2'], [40124, 'EvtVnd1'], [40126, 'EvtVnd2'], [40128, 'EvtVnd3'], [40130, 'EvtVnd4']] as [$addr, $name]) {
-            $rows[] = $this->templateRow($addr, 'uint32', $name . ' - Ereignisbits', 0, 0.0);
+            $rows[] = $this->templateRow($addr, 'uint32', $this->t('%s - event bits', $name), 0, 0.0);
         }
-        $rows[] = $this->templateRow(40132, 'uint16', 'Endmodell - ID (0xFFFF)', 0, 65535.0);
-        $rows[] = $this->templateRow(40133, 'uint16', 'Endmodell - Länge', 0, 0.0);
+        $rows[] = $this->templateRow(40132, 'uint16', $this->t('End model - ID (0xFFFF)'), 0, 65535.0);
+        $rows[] = $this->templateRow(40133, 'uint16', $this->t('End model - length'), 0, 0.0);
         return $rows;
     }
 
@@ -1226,81 +1261,81 @@ class ModbusTCPServer extends IPSModule
     private function templateRowsSunSpec213(): array
     {
         $rows = [
-            $this->templateRow(40000, 'uint32', 'SunSpec-Kennung "SunS"', 0, 1400204883.0),
+            $this->templateRow(40000, 'uint32', $this->t('SunSpec identifier "SunS"'), 0, 1400204883.0),
             $this->templateRow(40002, 'uint16', 'Common Model - ID', 0, 1.0),
-            $this->templateRow(40003, 'uint16', 'Common Model - Länge', 0, 66.0),
-            $this->templateRow(40070, 'uint16', 'Model 213 - ID (Zähler dreiphasig, float)', 0, 213.0),
-            $this->templateRow(40071, 'uint16', 'Model 213 - Länge', 0, 124.0)
+            $this->templateRow(40003, 'uint16', $this->t('Common Model - length'), 0, 66.0),
+            $this->templateRow(40070, 'uint16', $this->t('Model 213 - ID (meter three-phase, float)'), 0, 213.0),
+            $this->templateRow(40071, 'uint16', $this->t('Model 213 - length'), 0, 124.0)
         ];
         $points = [
-            [40072, 'A - Strom gesamt (A)'],
-            [40074, 'AphA - Strom L1 (A)'],
-            [40076, 'AphB - Strom L2 (A)'],
-            [40078, 'AphC - Strom L3 (A)'],
-            [40080, 'PhV - Spannung L-N Mittel (V)'],
-            [40082, 'PhVphA - Spannung L1-N (V)'],
-            [40084, 'PhVphB - Spannung L2-N (V)'],
-            [40086, 'PhVphC - Spannung L3-N (V)'],
-            [40088, 'PPV - Spannung L-L Mittel (V)'],
-            [40090, 'PPVphAB - Spannung L1-L2 (V)'],
-            [40092, 'PPVphBC - Spannung L2-L3 (V)'],
-            [40094, 'PPVphCA - Spannung L3-L1 (V)'],
-            [40096, 'Hz - Netzfrequenz (Hz)'],
-            [40098, 'W - Wirkleistung gesamt (W, Export positiv)'],
-            [40100, 'WphA - Wirkleistung L1 (W)'],
-            [40102, 'WphB - Wirkleistung L2 (W)'],
-            [40104, 'WphC - Wirkleistung L3 (W)'],
-            [40106, 'VA - Scheinleistung gesamt (VA)'],
-            [40108, 'VAphA - Scheinleistung L1 (VA)'],
-            [40110, 'VAphB - Scheinleistung L2 (VA)'],
-            [40112, 'VAphC - Scheinleistung L3 (VA)'],
-            [40114, 'VAR - Blindleistung gesamt (var)'],
-            [40116, 'VARphA - Blindleistung L1 (var)'],
-            [40118, 'VARphB - Blindleistung L2 (var)'],
-            [40120, 'VARphC - Blindleistung L3 (var)'],
-            [40122, 'PF - Leistungsfaktor gesamt'],
-            [40124, 'PFphA - Leistungsfaktor L1'],
-            [40126, 'PFphB - Leistungsfaktor L2'],
-            [40128, 'PFphC - Leistungsfaktor L3'],
-            [40130, 'TotWhExp - Energie Export gesamt (Wh)'],
-            [40132, 'TotWhExpPhA - Energie Export L1 (Wh)'],
-            [40134, 'TotWhExpPhB - Energie Export L2 (Wh)'],
-            [40136, 'TotWhExpPhC - Energie Export L3 (Wh)'],
-            [40138, 'TotWhImp - Energie Import gesamt (Wh)'],
-            [40140, 'TotWhImpPhA - Energie Import L1 (Wh)'],
-            [40142, 'TotWhImpPhB - Energie Import L2 (Wh)'],
-            [40144, 'TotWhImpPhC - Energie Import L3 (Wh)'],
-            [40146, 'TotVAhExp - Scheinenergie Export (VAh)'],
-            [40148, 'TotVAhExpPhA - Scheinenergie Export L1 (VAh)'],
-            [40150, 'TotVAhExpPhB - Scheinenergie Export L2 (VAh)'],
-            [40152, 'TotVAhExpPhC - Scheinenergie Export L3 (VAh)'],
-            [40154, 'TotVAhImp - Scheinenergie Import (VAh)'],
-            [40156, 'TotVAhImpPhA - Scheinenergie Import L1 (VAh)'],
-            [40158, 'TotVAhImpPhB - Scheinenergie Import L2 (VAh)'],
-            [40160, 'TotVAhImpPhC - Scheinenergie Import L3 (VAh)'],
-            [40162, 'TotVArhImpQ1 - Blindenergie Import Q1 (varh)'],
-            [40164, 'TotVArhImpQ1phA - Blindenergie Import Q1 L1 (varh)'],
-            [40166, 'TotVArhImpQ1phB - Blindenergie Import Q1 L2 (varh)'],
-            [40168, 'TotVArhImpQ1phC - Blindenergie Import Q1 L3 (varh)'],
-            [40170, 'TotVArhImpQ2 - Blindenergie Import Q2 (varh)'],
-            [40172, 'TotVArhImpQ2phA - Blindenergie Import Q2 L1 (varh)'],
-            [40174, 'TotVArhImpQ2phB - Blindenergie Import Q2 L2 (varh)'],
-            [40176, 'TotVArhImpQ2phC - Blindenergie Import Q2 L3 (varh)'],
-            [40178, 'TotVArhExpQ3 - Blindenergie Export Q3 (varh)'],
-            [40180, 'TotVArhExpQ3phA - Blindenergie Export Q3 L1 (varh)'],
-            [40182, 'TotVArhExpQ3phB - Blindenergie Export Q3 L2 (varh)'],
-            [40184, 'TotVArhExpQ3phC - Blindenergie Export Q3 L3 (varh)'],
-            [40186, 'TotVArhExpQ4 - Blindenergie Export Q4 (varh)'],
-            [40188, 'TotVArhExpQ4phA - Blindenergie Export Q4 L1 (varh)'],
-            [40190, 'TotVArhExpQ4phB - Blindenergie Export Q4 L2 (varh)'],
-            [40192, 'TotVArhExpQ4phC - Blindenergie Export Q4 L3 (varh)']
+            [40072, 'A - current total (A)'],
+            [40074, 'AphA - current L1 (A)'],
+            [40076, 'AphB - current L2 (A)'],
+            [40078, 'AphC - current L3 (A)'],
+            [40080, 'PhV - voltage L-N average (V)'],
+            [40082, 'PhVphA - voltage L1-N (V)'],
+            [40084, 'PhVphB - voltage L2-N (V)'],
+            [40086, 'PhVphC - voltage L3-N (V)'],
+            [40088, 'PPV - voltage L-L average (V)'],
+            [40090, 'PPVphAB - voltage L1-L2 (V)'],
+            [40092, 'PPVphBC - voltage L2-L3 (V)'],
+            [40094, 'PPVphCA - voltage L3-L1 (V)'],
+            [40096, 'Hz - grid frequency (Hz)'],
+            [40098, 'W - active power total (W, export positive)'],
+            [40100, 'WphA - active power L1 (W)'],
+            [40102, 'WphB - active power L2 (W)'],
+            [40104, 'WphC - active power L3 (W)'],
+            [40106, 'VA - apparent power total (VA)'],
+            [40108, 'VAphA - apparent power L1 (VA)'],
+            [40110, 'VAphB - apparent power L2 (VA)'],
+            [40112, 'VAphC - apparent power L3 (VA)'],
+            [40114, 'VAR - reactive power total (var)'],
+            [40116, 'VARphA - reactive power L1 (var)'],
+            [40118, 'VARphB - reactive power L2 (var)'],
+            [40120, 'VARphC - reactive power L3 (var)'],
+            [40122, 'PF - power factor total'],
+            [40124, 'PFphA - power factor L1'],
+            [40126, 'PFphB - power factor L2'],
+            [40128, 'PFphC - power factor L3'],
+            [40130, 'TotWhExp - energy export total (Wh)'],
+            [40132, 'TotWhExpPhA - energy export L1 (Wh)'],
+            [40134, 'TotWhExpPhB - energy export L2 (Wh)'],
+            [40136, 'TotWhExpPhC - energy export L3 (Wh)'],
+            [40138, 'TotWhImp - energy import total (Wh)'],
+            [40140, 'TotWhImpPhA - energy import L1 (Wh)'],
+            [40142, 'TotWhImpPhB - energy import L2 (Wh)'],
+            [40144, 'TotWhImpPhC - energy import L3 (Wh)'],
+            [40146, 'TotVAhExp - apparent energy export (VAh)'],
+            [40148, 'TotVAhExpPhA - apparent energy export L1 (VAh)'],
+            [40150, 'TotVAhExpPhB - apparent energy export L2 (VAh)'],
+            [40152, 'TotVAhExpPhC - apparent energy export L3 (VAh)'],
+            [40154, 'TotVAhImp - apparent energy import (VAh)'],
+            [40156, 'TotVAhImpPhA - apparent energy import L1 (VAh)'],
+            [40158, 'TotVAhImpPhB - apparent energy import L2 (VAh)'],
+            [40160, 'TotVAhImpPhC - apparent energy import L3 (VAh)'],
+            [40162, 'TotVArhImpQ1 - reactive energy import Q1 (varh)'],
+            [40164, 'TotVArhImpQ1phA - reactive energy import Q1 L1 (varh)'],
+            [40166, 'TotVArhImpQ1phB - reactive energy import Q1 L2 (varh)'],
+            [40168, 'TotVArhImpQ1phC - reactive energy import Q1 L3 (varh)'],
+            [40170, 'TotVArhImpQ2 - reactive energy import Q2 (varh)'],
+            [40172, 'TotVArhImpQ2phA - reactive energy import Q2 L1 (varh)'],
+            [40174, 'TotVArhImpQ2phB - reactive energy import Q2 L2 (varh)'],
+            [40176, 'TotVArhImpQ2phC - reactive energy import Q2 L3 (varh)'],
+            [40178, 'TotVArhExpQ3 - reactive energy export Q3 (varh)'],
+            [40180, 'TotVArhExpQ3phA - reactive energy export Q3 L1 (varh)'],
+            [40182, 'TotVArhExpQ3phB - reactive energy export Q3 L2 (varh)'],
+            [40184, 'TotVArhExpQ3phC - reactive energy export Q3 L3 (varh)'],
+            [40186, 'TotVArhExpQ4 - reactive energy export Q4 (varh)'],
+            [40188, 'TotVArhExpQ4phA - reactive energy export Q4 L1 (varh)'],
+            [40190, 'TotVArhExpQ4phB - reactive energy export Q4 L2 (varh)'],
+            [40192, 'TotVArhExpQ4phC - reactive energy export Q4 L3 (varh)']
         ];
         foreach ($points as [$addr, $name]) {
-            $rows[] = $this->templateRow($addr, 'float32', $name);
+            $rows[] = $this->templateRow($addr, 'float32', $this->t($name));
         }
-        $rows[] = $this->templateRow(40194, 'uint32', 'Evt - Ereignisbits', 0, 0.0);
-        $rows[] = $this->templateRow(40196, 'uint16', 'Endmodell - ID (0xFFFF)', 0, 65535.0);
-        $rows[] = $this->templateRow(40197, 'uint16', 'Endmodell - Länge', 0, 0.0);
+        $rows[] = $this->templateRow(40194, 'uint32', $this->t('Evt - event bits'), 0, 0.0);
+        $rows[] = $this->templateRow(40196, 'uint16', $this->t('End model - ID (0xFFFF)'), 0, 65535.0);
+        $rows[] = $this->templateRow(40197, 'uint16', $this->t('End model - length'), 0, 0.0);
         return $rows;
     }
 
@@ -1416,12 +1451,12 @@ class ModbusTCPServer extends IPSModule
         if (MBSLVRegisterMemory::isMemoryCell($row)) {
             $memory = MBSLVRegisterMemory::with(MBSLVRegisterMemory::decode((string) $this->ReadAttributeString('RegisterMemory')), (int) $row['Address'], $value);
             $this->WriteAttributeString('RegisterMemory', MBSLVRegisterMemory::encode($memory));
-            $this->SendDebug('Schreiben', sprintf('Register %d -> Speicherzelle = %s', $row['Address'], json_encode($value)), 0);
+            $this->SendDebug($this->t('Write'), $this->t('Register %d -> memory cell = %s', $row['Address'], json_encode($value)), 0);
             return;
         }
         $variable = $row['VariableID'];
         if ($variable < 10000 || !IPS_VariableExists($variable)) {
-            $this->SendDebug('Schreiben', sprintf('Register %d: keine Zielvariable zugeordnet', $row['Address']), 0);
+            $this->SendDebug($this->t('Write'), $this->t('Register %d: no target variable assigned', $row['Address']), 0);
             return;
         }
         $scaled = $value / $row['Factor'];
@@ -1443,7 +1478,7 @@ class ModbusTCPServer extends IPSModule
         // eines ModBus-Device, dessen Aktion sonst in ein anderes Gerät schreiben würde)
         $direct = ((int) ($row['Writable'] ?? 0)) === self::WRITE_DIRECT;
         $hasAction = !$direct && (($info['VariableCustomAction'] > 0) || ($info['VariableAction'] > 0));
-        $this->SendDebug('Schreiben', sprintf('Register %d -> Variable #%d = %s (%s)', $row['Address'], $variable, json_encode($target), $direct ? 'SetValue, direkt' : ($hasAction ? 'RequestAction' : 'SetValue')), 0);
+        $this->SendDebug($this->t('Write'), $this->t('Register %d -> variable #%d = %s (%s)', $row['Address'], $variable, json_encode($target), $direct ? $this->t('SetValue, direct') : ($hasAction ? 'RequestAction' : 'SetValue')), 0);
         if ($hasAction) {
             @RequestAction($variable, $target);
         } else {
@@ -1457,7 +1492,7 @@ class ModbusTCPServer extends IPSModule
         switch ($ident) {
             case 'RPC_SETPOINT':
                 $value = max(0.0, min(125.0, $value));
-                $this->SendDebug('RPC', sprintf('Sollwertvorgabe %.3f %% empfangen', $value), 0);
+                $this->SendDebug('RPC', $this->t('Setpoint %.3f %% received', $value), 0);
                 $this->SetValue('Setpoint', $value);
                 $this->SetValue('SetpointValid', true);
                 $this->SetValue('LastWrite', $now);
@@ -1468,20 +1503,20 @@ class ModbusTCPServer extends IPSModule
 
             case 'RPC_VALIDTIME':
                 $value = max(1.0, min(255.0, $value));
-                $this->SendDebug('RPC', sprintf('Gültigkeitsdauer %.1f min empfangen', $value), 0);
+                $this->SendDebug('RPC', $this->t('Validity period %.1f min received', $value), 0);
                 $this->SetValue('ValidTime', $value);
                 break;
 
             case 'RPC_WATCHDOG':
                 $this->WriteAttributeFloat('WatchdogValue', $value);
                 if ($this->GetValue('SetpointValid')) {
-                    $this->SendDebug('RPC', 'Watchdog empfangen - Gültigkeitsdauer neu gestartet', 0);
+                    $this->SendDebug('RPC', $this->t('Watchdog received - validity period restarted'), 0);
                     $this->SetValue('LastWrite', $now);
                     $this->armExpiry($now);
                     $this->runForwardScript('watchdog', (float) $this->GetValue('Setpoint'));
                 } else {
                     // lt. Datenblatt: Watchdog nach Ablauf hält den Sollwert NICHT am Leben
-                    $this->SendDebug('RPC', 'Watchdog empfangen, aber Vorgabe bereits abgelaufen - ignoriert', 0);
+                    $this->SendDebug('RPC', $this->t('Watchdog received, but setpoint already expired - ignored'), 0);
                 }
                 break;
 

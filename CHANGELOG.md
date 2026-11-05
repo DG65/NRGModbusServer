@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.13.0 (2026-11-05)
+
+- Neu: Das Modul ist jetzt zweisprachig (Deutsch/Englisch, Verbundentscheidung 05.11.2026). Alle sichtbaren Texte - Formular, Hinweis-Panels, Meldungen, Statuszeilen, Debug-Ausgaben, Variablennamen, Registernamen der Vorlagen (Meteocontrol blue'Log RPC, SunSpec) - stehen als englische Quelltexte im Code und in der `form.json`, die deutsche Fassung in `locale.json` (233 Texte). Die Sprache folgt der Symcon-Einstellung. Neue Dokumentation `README.en.md`
+- Kennungen unverändert: Idents, Property-/Attributnamen, Funktions- und Profilnamen sowie die Spalten- und Feldnamen der Listen bleiben exakt wie bisher - bestehende Instanzen verlieren nichts (Migrationsvergleich ohne Bruch). Bereits angelegte Variablen behalten ihren bisherigen (deutschen) Namen, weil sie nur bei der Neuanlage benannt werden; neue Instanzen verwenden die eingestellte Sprache. Bereits gespeicherte Registernamen in der Registertabelle bleiben unverändert (Nutzerdaten)
+- Stolperstein 24 beachtet: Übersetzungen werden je Prozess gemerkt, `Translate()` (liest bei jedem Aufruf die locale.json) wird je Text höchstens einmal gerufen; die Antwortwege der Modbus-Anfragen enthalten nur Debug-Texte
+- Das Dezimalzeichen der Spalte "Wert" folgt der Sprache (Komma deutsch, Punkt englisch)
+- Wording: "IP-Symcon" durch "Symcon" ersetzt (Store-Empfehlung); die Variable "Wirksamer DV-Sollwert" heißt englisch "Effective direct marketing setpoint"
+- Hinweis-Banner "Neu in Version" auf 1.13 angehoben (Zweisprachigkeit); die Punkte der 1.12 stehen weiter hier im Changelog
+- Prüfstand erweitert (`.tests/module_test.php`): jeder Text in `form.json`/`module.php` steht in `locale.json`, kein deutscher Text mehr im Code, Platzhalter in beiden Sprachen gleich, Formular in Englisch erzeugt ohne deutsche Reste, Dezimalzeichen und Meldungen in beiden Sprachen, Übersetzungs-Merkliste (zweiter Formularaufbau ohne neue `Translate()`-Aufrufe)
+
 ## 1.12.4 (2026-09-22)
 
 - Fix (Live-Fund Solarpark, Folgefehler von 1.12.3): "Datenpunkte für unzugeordnete Register anlegen" lieferte nach dem ersten Fix zwar keinen Fatal Error mehr, aber ein falsches Ergebnis - Symcon übergibt den Browser-Stand der Registertabelle beim Klick auf diesen Button nicht zuverlässig, teils nur die interne "Zeile hinzufügen"-Vorlage (ein einzelnes Objekt mit Adresse 0, leerem Namen). Dadurch legte das Modul eine Fantasie-Variable "Register 0" an und überschrieb die ANZEIGE im offenen Formular mit dieser einen Zeile - die echten Zeilen wirkten verschwunden (tatsächlich nur die Anzeige betroffen, die gespeicherte Konfiguration blieb unangetastet, solange nicht zusätzlich "Änderungen übernehmen" geklickt wurde). Die Methode liest jetzt ausschließlich die gespeicherte Konfiguration, der übergebene Parameter wird bewusst ignoriert. Eine gerade erst hinzugefügte, noch nicht übernommene Zeile bekommt ihren Datenpunkt deshalb erst nach dem Speichern - im Formular und der README ergänzt. Regressionstests umgebaut (Gegenprobe: schlagen gegen 1.12.3 fehl, laufen gegen diese Version durch)

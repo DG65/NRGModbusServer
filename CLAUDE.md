@@ -88,8 +88,23 @@ Manueller Gegentest: `modpoll` (Beispiele im README).
 Seit 27.10.2026 (Verbundentscheidung, alle Betas sind Stable) gibt es nur noch `beta`
 (Arbeitsbranch, Store-Beta) und `main` (Stable). Der frühere verbundweite
 Zwischenbranch `ems-integration` ist abgeschafft und gelöscht. Änderungen landen auf
-`beta`; `main` wird erst nach Bewährung per Fast-Forward nachgezogen. Nutzersichtbares
-deutsch.
+`beta`; `main` wird erst nach Bewährung per Fast-Forward nachgezogen. Nutzersichtbare Texte
+sind zweisprachig (siehe nächster Abschnitt).
+
+## Sprache / Zweisprachigkeit (seit 05.11.2026, 1.13.0)
+
+Alle sichtbaren Texte sind zweisprachig (Deutsch/Englisch, SUITE.md Konventionen Punkt 9):
+**englische Quelltexte** im Code und in `form.json`, die deutsche Fassung in
+`ModbusTCPServer/locale.json` (`translations.de`, Schlüssel = englischer Quelltext). Im Code
+läuft alles über `$this->t('English text', ...args)` (Merkliste je Prozess gegen die teure
+`Translate()`-Abfrage, SUITE.md Stolperstein 24; Argumente wie sprintf); das fertige Formular
+geht in `GetConfigurationForm()` einmal durch `translateForm()` (übersetzt `caption`/`confirm`/
+`label`). **Kennungen bleiben deutsch/unverändert** (Idents, Property-/Attribut-/Funktionsnamen,
+Listenspalten). Neuer sichtbarer Text = englischer Quelltext + Eintrag in `locale.json`; der
+Prüfstand (`.tests/module_test.php`) schlägt sonst fehl (jeder Text in `locale.json`, kein
+deutscher Text in Zeichenketten, Platzhalter gleich, englisches Formular ohne deutsche Reste).
+Variablen- und Registernamen werden nur bei der Neuanlage vergeben und bleiben danach in der
+damals gewählten Sprache. README: `README.md` (Deutsch) und `README.en.md` (Englisch) parallel pflegen.
 
 ## Verbund-Manifest SUITE.md — Bezugsquelle (geändert 31.08.2026)
 
