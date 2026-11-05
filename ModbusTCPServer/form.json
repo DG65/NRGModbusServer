@@ -3,7 +3,7 @@
     {
       "type": "ExpansionPanel",
       "name": "DocPanel",
-      "caption": "📖  Documentation & Help",
+      "caption": "📖  Documentation & help",
       "expanded": false,
       "items": [
         {
@@ -63,7 +63,7 @@
         {
           "type": "NumberSpinner",
           "name": "UnitID",
-          "caption": "Unit-ID",
+          "caption": "Unit ID",
           "width": "220px",
           "minimum": 0,
           "maximum": 255

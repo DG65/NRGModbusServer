@@ -150,7 +150,7 @@ $moduleSrc = file_get_contents(__DIR__ . '/../ModbusTCPServer/module.php');
 $formSrc = json_decode(file_get_contents(__DIR__ . '/../ModbusTCPServer/form.json'), true);
 
 // Texte, die in beiden Sprachen bewusst gleich lauten (Eigennamen, Fachkürzel, Symbole)
-$sameInBoth = ['Name', 'Holding', 'Input', 'Variable', 'Status', 'Unit-ID', ' ', '–', 'uint16', 'int16', 'uint32', 'int32', 'float32', 'float64'];
+$sameInBoth = ['Name', 'Holding', 'Input', 'Variable', 'Status', ' ', '–', 'uint16', 'int16', 'uint32', 'int32', 'float32', 'float64'];
 
 // 1. form.json: jeder Anzeigetext ist ein englischer Quelltext mit deutscher Fassung in locale.json
 $walk = function ($node) use (&$walk, &$formTexts) {

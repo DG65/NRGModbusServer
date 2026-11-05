@@ -1,7 +1,7 @@
 {
   "translations": {
     "de": {
-      "📖  Documentation & Help": "📖  Dokumentation & Hilfe",
+      "📖  Documentation & help": "📖  Dokumentation & Hilfe",
       "This module turns Symcon into a Modbus TCP server (slave): external Modbus clients (masters) read and write Symcon variables through the register table defined below. Both terms mean the same thing - the Modbus specification says client/server, older data sheets and devices often still say master/slave. The TCP port is set on the parent Server Socket instance (usually 502). Several simultaneous connections on the same port are possible.": "Dieses Modul macht Symcon zum Modbus-TCP-Server (Slave): externe Modbus-Clients (Master) lesen und schreiben IPS-Variablen über die unten definierte Registertabelle. Beide Schreibweisen bedeuten dasselbe - die Modbus-Spezifikation sagt Client/Server, ältere Datenblätter und Geräte oft noch Master/Slave. Der TCP-Port wird auf der übergeordneten Server-Socket-Instanz eingestellt (üblich 502). Mehrere gleichzeitige Verbindungen auf demselben Port sind möglich.",
       "Register table: Each row maps one value. 'Address' is the 0-based protocol address of the first word; multi-word types (int32/uint32/float32 = 2 words, float64 = 4 words) occupy the following addresses. 'Factor' scales from the variable to the register (register value = variable value x factor; the reverse when writing). If no variable is assigned and 'Write' is set to 'No', the 'Fixed value' is returned. If no variable is assigned but writing is allowed, the row works as a memory cell (see below).": "Registertabelle: Jede Zeile bildet einen Wert ab. 'Adresse' ist die 0-basierte Protokolladresse des ersten Words; Mehrwort-Typen (int32/uint32/float32 = 2 Words, float64 = 4 Words) belegen die Folgeadressen. 'Faktor' skaliert von der Variable zum Register (Registerwert = Variablenwert x Faktor; beim Schreiben umgekehrt). Ist keine Variable zugeordnet und Schreiben auf 'Nein', wird der 'Festwert' geliefert. Ist keine Variable zugeordnet, Schreiben aber erlaubt, arbeitet die Zeile als Speicherzelle (siehe unten).",
       "Write (column 'Write'): 'No' = the master may only read (write attempts are acknowledged but discarded). 'Yes - action' = a value written by the master is passed to the variable via RequestAction if it has an action (e.g. a write access switches an actuator), otherwise via SetValue. 'Yes - direct' = always SetValue, the variable's action is deliberately NOT triggered - required when the variable belongs to another instance (e.g. a register of a ModBus device) whose action would otherwise try to write the value to a completely different device.": "Schreiben (Spalte 'Schreiben'): 'Nein' = der Master darf nur lesen (Schreibversuche werden quittiert, aber verworfen). 'Ja - Aktion' = ein vom Master geschriebener Wert wird per RequestAction an die Variable übergeben, falls sie eine Aktion besitzt (z. B. schaltet so ein Schreibzugriff einen Aktor), sonst per SetValue. 'Ja - direkt' = immer SetValue, die Aktion der Variable wird bewusst NICHT ausgelöst - nötig, wenn die Variable einer anderen Instanz gehört (z. B. ein Register eines ModBus-Device), deren Aktion sonst versuchen würde, den Wert in ein ganz anderes Gerät zu schreiben.",
@@ -233,7 +233,8 @@
       "TotVArhExpQ4phA - reactive energy export Q4 L1 (varh)": "TotVArhExpQ4phA - Blindenergie Export Q4 L1 (varh)",
       "TotVArhExpQ4phB - reactive energy export Q4 L2 (varh)": "TotVArhExpQ4phB - Blindenergie Export Q4 L2 (varh)",
       "TotVArhExpQ4phC - reactive energy export Q4 L3 (varh)": "TotVArhExpQ4phC - Blindenergie Export Q4 L3 (varh)",
-      "%s - event bits": "%s - Ereignisbits"
+      "%s - event bits": "%s - Ereignisbits",
+      "Unit ID": "Unit-ID"
     }
   }
 }
