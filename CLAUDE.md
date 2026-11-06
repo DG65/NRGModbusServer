@@ -97,9 +97,12 @@ Alle sichtbaren Texte sind zweisprachig (Deutsch/Englisch, SUITE.md Konventionen
 **englische Quelltexte** im Code und in `form.json`, die deutsche Fassung in
 `ModbusTCPServer/locale.json` (`translations.de`, Schlüssel = englischer Quelltext). Im Code
 läuft alles über `$this->t('English text', ...args)` (Merkliste je Prozess gegen die teure
-`Translate()`-Abfrage, SUITE.md Stolperstein 24; Argumente wie sprintf); das fertige Formular
-geht in `GetConfigurationForm()` einmal durch `translateForm()` (übersetzt `caption`/`confirm`/
-`label`). **Kennungen bleiben deutsch/unverändert** (Idents, Property-/Attribut-/Funktionsnamen,
+`Translate()`-Abfrage, SUITE.md Stolperstein 24; Argumente wie sprintf) - gilt für Variablennamen,
+Meldungen, Popup-/Echo-Texte und Statuszeilen mit Werten. Das Formular übersetzt die Konsole
+selbst aus `locale.json` (`caption`/`confirm`/`label`/Optionen; Store-Checkliste 25) - KEINE eigene
+Übersetzungsschleife im Modul. Der Abgleich des Ausblende-Stands mit Geschwister-Instanzen läuft
+beim Formularaufruf (`GetConfigurationForm()`), nicht in `ApplyChanges()` (Checkliste 27).
+**Kennungen bleiben deutsch/unverändert** (Idents, Property-/Attribut-/Funktionsnamen,
 Listenspalten). Neuer sichtbarer Text = englischer Quelltext + Eintrag in `locale.json`; der
 Prüfstand (`.tests/module_test.php`) schlägt sonst fehl (jeder Text in `locale.json`, kein
 deutscher Text in Zeichenketten, Platzhalter gleich, englisches Formular ohne deutsche Reste).

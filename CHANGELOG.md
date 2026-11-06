@@ -2,8 +2,9 @@
 
 ## 1.13.0 (2026-11-05)
 
-- Neu: Das Modul ist jetzt zweisprachig (Deutsch/Englisch, Verbundentscheidung 05.11.2026). Alle sichtbaren Texte - Formular, Hinweis-Panels, Meldungen, Statuszeilen, Debug-Ausgaben, Variablennamen, Registernamen der Vorlagen (Meteocontrol blue'Log RPC, SunSpec) - stehen als englische Quelltexte im Code und in der `form.json`, die deutsche Fassung in `locale.json` (233 Texte). Die Sprache folgt der Symcon-Einstellung. Neue Dokumentation `README.en.md`
+- Neu: Das Modul ist jetzt zweisprachig (Deutsch/Englisch, Verbundentscheidung 05.11.2026). Alle sichtbaren Texte - Formular, Hinweis-Panels, Meldungen, Statuszeilen, Debug-Ausgaben, Variablennamen, Registernamen der Vorlagen (Meteocontrol blue'Log RPC, SunSpec) - stehen als englische Quelltexte im Code und in der `form.json`, die deutsche Fassung in `locale.json` (234 Texte). Die Sprache folgt der Symcon-Einstellung. Neue Dokumentation `README.en.md`
 - Kennungen unverändert: Idents, Property-/Attributnamen, Funktions- und Profilnamen sowie die Spalten- und Feldnamen der Listen bleiben exakt wie bisher - bestehende Instanzen verlieren nichts (Migrationsvergleich ohne Bruch). Bereits angelegte Variablen behalten ihren bisherigen (deutschen) Namen, weil sie nur bei der Neuanlage benannt werden; neue Instanzen verwenden die eingestellte Sprache. Bereits gespeicherte Registernamen in der Registertabelle bleiben unverändert (Nutzerdaten)
+- Store-Checkliste 25/27 umgesetzt: Das Formular übersetzt die Konsole selbst aus `locale.json` (keine eigene Übersetzungsschleife im Modul); der Abgleich des Ausblende-Stands mit Geschwister-Instanzen läuft beim Formularaufruf statt in `ApplyChanges()`
 - Stolperstein 24 beachtet: Übersetzungen werden je Prozess gemerkt, `Translate()` (liest bei jedem Aufruf die locale.json) wird je Text höchstens einmal gerufen; die Antwortwege der Modbus-Anfragen enthalten nur Debug-Texte
 - Das Dezimalzeichen der Spalte "Wert" folgt der Sprache (Komma deutsch, Punkt englisch)
 - Wording: "IP-Symcon" durch "Symcon" ersetzt (Store-Empfehlung); die Variable "Wirksamer DV-Sollwert" heißt englisch "Effective direct marketing setpoint"

@@ -47,17 +47,33 @@ function IPS_GetLibrary($id){ if ($id !== '{1C9B79B6-35D6-4381-907C-ADAE1FEAF307
 function IPS_GetInstanceListByModuleID($g){ return [12345, 22222]; }
 function IPS_VariableExists($i){ return false; } function IPS_GetName($i){ return 'Test'; } function IPS_GetObject($i){ return ['ParentID'=>0]; }
 function IPS_GetProperty($i,$n){ return 0; } function IPS_VariableProfileExists($n){ return true; }
-$sibState = ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.13']; $GLOBALS['adopted']=[];
+$sibState = ['purposeIntroGone'=>false,'forumHintGone'=>false,'seenNews'=>'']; $GLOBALS['adopted']=[];
 function MBSLV_AdoptDismissState($id,$w,$v){ $GLOBALS['adopted'][]=[$id,$w,$v]; }
 function MBSLV_GetDismissState($id){ global $sibState; return $sibState; }
 // Symcon-Sprache: Deutsch (locale.json) - Quelltexte sind englisch, die vorhandenen Prüfungen unten erwarten die deutsche Fassung
 $GLOBALS['locale'] = json_decode(file_get_contents(__DIR__ . '/../ModbusTCPServer/locale.json'), true)['translations']['de'];
 $GLOBALS['translateCalls'] = 0;
 require __DIR__ . '/../ModbusTCPServer/module.php';
+// Die Konsole übersetzt caption/confirm/label des Formulars selbst (SUITE.md Store-Checkliste 25) - hier nachgebildet,
+// damit die deutschen Prüfungen unten das Formular so sehen wie ein Nutzer mit deutscher Konsole.
+function consoleForm(string $json): array
+{
+    $walk = function ($node) use (&$walk) {
+        foreach ($node as $k => $v) {
+            if (is_string($k) && in_array($k, ['caption', 'confirm', 'label'], true) && is_string($v)) {
+                $node[$k] = $GLOBALS['locale'][$v] ?? $v;
+            } elseif (is_array($v)) {
+                $node[$k] = $walk($v);
+            }
+        }
+        return $node;
+    };
+    return $walk(json_decode($json, true));
+}
 $m = new ModbusTCPServer();
 $fail = 0; function t($n,$ok){ global $fail; echo ($ok?'OK   ':'FAIL ').$n."\n"; if(!$ok)$fail++; }
 $m->Create();
-$form = json_decode($m->GetConfigurationForm(), true);
+$form = consoleForm($m->GetConfigurationForm());
 t('Formular ist gültiges JSON', is_array($form) && isset($form['elements']));
 $caps = array_map(fn($e)=>($e['name'] ?? '') ?: ($e['caption'] ?? $e['type']), $form['elements']);
 echo '   Reihenfolge: ' . implode(' | ', array_map(fn($c)=>mb_substr($c,0,28), $caps)) . "\n";
@@ -84,12 +100,19 @@ $m->AckForumHint();
 t('AckForumHint setzt Attribut und reicht an Geschwister weiter', $GLOBALS['attrs']['ForumHintGone'] === true && $GLOBALS['adopted'] === [[22222,'ForumHint','']]);
 $m->AckNews();
 t('AckNews speichert Version', $GLOBALS['attrs']['SeenNews'] === '1.13');
-$form2 = json_decode($m->GetConfigurationForm(), true);
+$form2 = consoleForm($m->GetConfigurationForm());
 t('Nach Bestätigen fehlen Zweck-, News- und Feedback-Panel', ($form2['elements'][0]['name'] ?? '') === 'DocPanel' && !in_array('ForumHintPanel', array_map(fn($e) => $e['name'] ?? '', $form2['elements']), true));
 // Neue Instanz übernimmt Stand vom Geschwister
+$sibState = ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.13'];
 $GLOBALS['attrs']['PurposeIntroGone']=false; $GLOBALS['attrs']['ForumHintGone']=false; $GLOBALS['attrs']['SeenNews']='';
 $ref = new ReflectionMethod($m,'AdoptDismissFromSibling');  $ref->invoke($m);
 t('Neue Instanz übernimmt Ausblende-Stand vom Geschwister', $GLOBALS['attrs']['PurposeIntroGone']===true && $GLOBALS['attrs']['ForumHintGone']===true && $GLOBALS['attrs']['SeenNews']==='1.13');
+// Store-Checkliste 27: der Abgleich mit Geschwister-Instanzen läuft NICHT in ApplyChanges() (beim Neuladen evtl. noch nicht geladen), sondern beim Formularaufruf
+$GLOBALS['attrs']['PurposeIntroGone']=false; $GLOBALS['attrs']['ForumHintGone']=false; $GLOBALS['attrs']['SeenNews']='';
+$m->ApplyChanges();
+t('ApplyChanges() fragt die Geschwister-Instanzen nicht ab', $GLOBALS['attrs']['PurposeIntroGone']===false && $GLOBALS['attrs']['ForumHintGone']===false);
+$m->GetConfigurationForm();
+t('GetConfigurationForm() übernimmt den Ausblende-Stand vom Geschwister', $GLOBALS['attrs']['PurposeIntroGone']===true && $GLOBALS['attrs']['ForumHintGone']===true && $GLOBALS['attrs']['SeenNews']==='1.13');
 $st = $m->GetDismissState();
 t('GetDismissState liefert Array', $st === ['purposeIntroGone'=>true,'forumHintGone'=>true,'seenNews'=>'1.13']);
 // Speicherzelle: schreiben/lesen über das Modul
@@ -197,6 +220,7 @@ $memo->setValue(null, []);
 $GLOBALS['locale'] = []; // Symcon-Sprache Englisch: Quelltext bleibt
 $GLOBALS['props']['Registers'] = json_encode([['Name' => 'x', 'Area' => 0, 'Address' => 1, 'DataType' => 'uint16', 'VariableID' => 0, 'Factor' => 1, 'Fixed' => 0.0, 'Writable' => 1]]);
 $GLOBALS['attrs']['PurposeIntroGone'] = false; $GLOBALS['attrs']['ForumHintGone'] = false; $GLOBALS['attrs']['SeenNews'] = '';
+$sibState = ['purposeIntroGone'=>false,'forumHintGone'=>false,'seenNews'=>''];
 $en = json_decode($m->GetConfigurationForm(), true);
 $enTexts = [];
 $collect = function ($node) use (&$collect, &$enTexts) {

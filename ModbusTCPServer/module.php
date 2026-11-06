@@ -64,8 +64,11 @@ class ModbusTCPServer extends IPSModule
     private static array $translations = [];
 
     /**
-     * Text übersetzen. Quelltexte stehen englisch im Code und in der form.json, die deutsche
-     * Fassung in locale.json. Mit Argumenten wie sprintf (Platzhalter %s/%d, ein Prozentzeichen als %%).
+     * Text übersetzen - nur für das, was die Konsole nicht selbst übersetzt (Variablennamen, Meldungen,
+     * Popup-/Echo-Texte, Statuszeilen mit eingesetzten Werten). Das Formular (caption/label/Optionen) übersetzt
+     * die Konsole selbst anhand der locale.json, NICHT noch einmal hier (SUITE.md Store-Checkliste 25).
+     * Quelltexte stehen englisch im Code und in der form.json, die deutsche Fassung in locale.json.
+     * Mit Argumenten wie sprintf (Platzhalter %s/%d, ein Prozentzeichen als %%).
      */
     private function t(string $text, ...$args): string
     {
@@ -78,22 +81,6 @@ class ModbusTCPServer extends IPSModule
         }
         $result = @vsprintf($translated, array_map(fn ($a) => is_scalar($a) || $a === null ? (string) $a : (string) json_encode($a), $args));
         return $result === false ? $translated : $result;
-    }
-
-    /** Übersetzt in einem Formular alle Anzeigetexte (caption, confirm, label); Kommandos und Namen bleiben unverändert. */
-    private function translateForm($node)
-    {
-        if (!is_array($node)) {
-            return $node;
-        }
-        foreach ($node as $key => $value) {
-            if (is_string($key) && in_array($key, ['caption', 'confirm', 'label'], true) && is_string($value)) {
-                $node[$key] = $value === '' ? $value : $this->t($value);
-            } elseif (is_array($value)) {
-                $node[$key] = $this->translateForm($value);
-            }
-        }
-        return $node;
     }
 
     public function Create()
@@ -200,7 +187,6 @@ class ModbusTCPServer extends IPSModule
         }
 
         $this->pruneRegisterMemory();
-        $this->AdoptDismissFromSibling();
 
         $this->SetTimerInterval('Watch', 60000);
         $this->UpdateHealth();
@@ -521,6 +507,9 @@ class ModbusTCPServer extends IPSModule
      */
     public function GetConfigurationForm()
     {
+        // Abgleich mit den Geschwister-Instanzen hier statt in ApplyChanges(): beim Neuladen der Module
+        // sind die anderen Instanzen dort evtl. noch nicht geladen (SUITE.md Store-Checkliste 27)
+        $this->AdoptDismissFromSibling();
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         $enabled = (bool) $this->ReadPropertyBoolean('RPCEnabled');
         // Das komplette RPC-Panel erscheint erst, wenn die RPC-Schnittstelle
@@ -553,7 +542,7 @@ class ModbusTCPServer extends IPSModule
             $form['elements'],
             [$this->ForumHint(), $this->LicenseHint()]
         )));
-        return json_encode($this->translateForm($form));
+        return json_encode($form);
     }
 
     /**
